@@ -511,10 +511,12 @@ int32_t get_reg_val(uint32_t vaddr)
 int32_t get_instruction(uint32_t address, int8_t *ram, int8_t *flash)
 {
 	int32_t instruction = 0x0;
-	if(address >= FLASH_START && address < FLASH_END)
-		instruction = *(int32_t *)(flash+address-FLASH_START);
-	else if(address >= RAM_START && address < RAM_END)
+	if(address >= RAM_START && address < RAM_END)
 		instruction = *(int32_t *)(ram+address-RAM_START);
+	else if(address >= FLASH_START && address < FLASH_END)
+		instruction = *(int32_t *)(flash+address-FLASH_START);
+	else
+		exit(1);
 	instruction = ntohl(instruction);
 	return instruction;
 }
