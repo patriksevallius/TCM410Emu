@@ -833,12 +833,10 @@ void process_callbacks(struct cpu_state *cpu)
 {
 	struct callback *cb;
 	
-	cb = cpu->callbacks;
-	while(cb)
+	for(cb = cpu->callbacks; cb; cb = cb->next)
 	{
 	  if(cb->address == cpu->pc)
 		cb->callback(cpu);
-	  cb = cb->next;
 	}
 }
 
