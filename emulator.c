@@ -403,10 +403,10 @@ int *get_address(unsigned int vaddr, char *ram, char *flash)
 		vaddr = vaddr & ~0x20000000;
 
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		return (int *)(flash+vaddr-FLASH_START);
+		return (int *)(flash+(vaddr-FLASH_START));
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		return (int *)(ram+vaddr-RAM_START);
+		return (int *)(ram+(vaddr-RAM_START));
 	return 0;
 }
 
