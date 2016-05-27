@@ -664,8 +664,8 @@ uint16_t load_short(uint32_t vaddr, int8_t *ram, int8_t *flash)
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return (int16_t)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
+
+	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		word = (int16_t)flash_read( vaddr, flash, 2 );
 	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
