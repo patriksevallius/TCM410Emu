@@ -2181,7 +2181,7 @@ void execute(struct cpu_state *cpu)
 		count++;
 
 		if(count % 10000000 == 0)
-			timer_int = 1;
+			timer_int = 2;
 		cpu->cop0[9][10]++; /* Count register */
 	}
 }
