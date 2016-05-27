@@ -24,7 +24,7 @@
 #define REG_START   0xfffe0000
 #define REG_END     0xffffffff
 
-#define dtrace(...) do { if( debug == 1 ) fprintf(stderr, __VA_ARGS__); } while(0)
+#define dtrace(...) do { if( debug ) fprintf(stderr, __VA_ARGS__); } while(0)
 
 struct cpu_state;
 
