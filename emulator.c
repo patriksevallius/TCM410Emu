@@ -655,7 +655,7 @@ void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		*(int32_t *)(ram+vaddr-RAM_START) = htonl(val);
 
- 	printf("can't write to 0x%x\n", vaddr);
+	printf("can't write 0x%08x to 0x%x\n", val, vaddr);
 }
 
 uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
@@ -690,7 +690,7 @@ void store_halfword(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		*(int16_t *)(ram+vaddr-RAM_START) = htons(val);
 
-	printf("can't write to 0x%x\n", vaddr);
+	printf("can't write 0x%04x to 0x%x\n", val, vaddr);
 }
 
 uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
