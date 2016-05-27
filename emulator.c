@@ -52,11 +52,13 @@ struct cpu_state
 	int8_t *ram;
 	int8_t *flash;
 	int32_t cop0[32][10];
-};
+} cpu;
 
 static int32_t debug = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
+static int32_t flash_auto_select = 0;
+static bool flash_log = false;
 
 static int32_t pll_control = 0;
 static int32_t blk_enables = 0;
@@ -81,48 +83,195 @@ static int32_t sdram_unk2 = 0;
 static int32_t sdram_mbase = 0;
 static int32_t sdram_unk3 = 0;
 
-int8_t fakeflash_read(uint32_t vaddr)
+int8_t flash_read_byte(uint32_t vaddr)
 {
-  int8_t rv = '\0';
+	int8_t rv = 0x0;
 
-  if(fakeflash_state == 1)
-    switch(vaddr)
-      {
-      case 0x9f000001:
-	rv = 'P';
-	break;
-      case 0x9f000003:
-	rv = 'R';
-	break;
-      case 0x9f000005:
-	rv = 'I';
-	break;
-      case 0x9f000021:
-	rv = 'Q';
-	break;
-      case 0x9f000023:
-	rv = 'R';
-	break;
-      case 0x9f000025:
-	rv = 'Y';
-	break;
-    default:
-	rv = '\0';
-	break;
-      }
-
-/*   printf("fake flash read @ 0x%x (0x%x)\n", vaddr, rv); */
-  return rv;
+	switch(vaddr)
+	{
+	case 0x9f000021:
+		rv = 'Q';
+		break;
+	case 0x9f000023:
+		rv = 'R';
+		break;
+	case 0x9f000025:
+		rv = 'Y';
+		break;
+	case 0x9f000081:
+		rv = 'P';
+		break;
+	case 0x9f000083:
+		rv = 'R';
+		break;
+	case 0x9f000085:
+		rv = 'I';
+		break;
+	default:
+		rv = 0x0;
+		break;
+	}
+	return rv;
+}
+bool disable_flash = false;
+int16_t flash_read_short(uint32_t vaddr)
+{
+	int16_t rv = 0x0;
+	if( flash_auto_select == 3 )
+	{
+		if( (vaddr & 0x3) == 0 )
+			return 0x2000; /* Manufacturer code, from ST M29W160EB datasheet */
+		else
+			exit(1);
+	}
+	if(disable_flash == true )
+	  return 0;
+	vaddr &= 0x1fffff;
+	switch(vaddr)
+	{
+	case 0x20:
+		rv = 0x5100; /* Q */
+		break;
+	case 0x22:
+		rv = 0x5200; /* R */
+		break;
+	case 0x24:
+		rv = 0x5900; /* Y */
+		break;
+	case 0x26:
+		rv = 0x0200; /* AMD compatible, from ST M29W160EB datasheet */
+		break;
+	case 0x28:
+		rv = 0x0000; /* AMD compatible, from ST M29W160EB datasheet */
+		break;
+	case 0x2a:
+		rv = 0x4000; /* Address for Primary Algorithm extended Query, from ST M29W160EB datasheet */
+		break;
+	case 0x2e:
+		rv = 0x0000; /* Alternate Vendor Command Set, from ST M29W160EB datasheet */
+		break;
+	case 0x32:
+		rv = 0x0000; /* Address for Alternate Algorithm extended Query, from ST M29W160EB datasheet */
+		break;
+	case 0x4e:
+		rv = 0x1500; /* 2MB size, from ST M29W160EB datasheet */
+		break;
+	case 0x50:
+		rv = 0x0200; /* x8, x16, Async., from ST M29W160EB datasheet */
+		break;
+	case 0x54:
+		rv = 0x0000; /* Max num of mutli-byte program bytes, from ST M29W160EB datasheet */
+		break;
+	case 0x56:
+		rv = 0x0000; /* Max num of mutli-byte program bytes, from ST M29W160EB datasheet */
+		break;
+	case 0x58:
+		rv = 0x0400; /* 4 erase block regions, from ST M29W160EB datasheet */
+		break;
+	case 0x5a:
+		rv = 0x0000; /* 1 block region 1, from ST M29W160EB datasheet */
+		break;
+	case 0x5c:
+		rv = 0x0000; /* 1 block region 1, from ST M29W160EB datasheet */
+		break;
+	case 0x5e:
+		rv = 0x4000; /* 16 KB region 1 size, from ST M29W160EB datasheet */
+		break;
+	case 0x60:
+		rv = 0x0000; /* 16 KB region 1 size, from ST M29W160EB datasheet */
+		break;
+	case 0x62:
+		rv = 0x0100; /* 2 blocks region 2, from ST M29W160EB datasheet */
+		break;
+	case 0x64:
+		rv = 0x0000; /* 2 blocks region 2, from ST M29W160EB datasheet */
+		break;
+	case 0x66:
+		rv = 0x2000; /* 8 KB region 1 size, from ST M29W160EB datasheet */
+		break;
+	case 0x68:
+		rv = 0x0000; /* 8 KB region 1 size, from ST M29W160EB datasheet */
+		break;
+	case 0x6a:
+		rv = 0x0000; /* 1 block region 3, from ST M29W160EB datasheet */
+		break;
+	case 0x6c:
+		rv = 0x0000; /* 1 block region 3, from ST M29W160EB datasheet */
+		break;
+	case 0x6e:
+		rv = 0x8000; /* 32 KB region 3 size, from ST M29W160EB datasheet */
+		break;
+	case 0x70:
+		rv = 0x0000; /* 32 KB region 3 size, from ST M29W160EB datasheet */
+		break;
+	case 0x72:
+		rv = 0x1e00; /* 31 blocks region 4, from ST M29W160EB datasheet */
+		break;
+	case 0x74:
+		rv = 0x0000; /* 31 blocks region 4, from ST M29W160EB datasheet */
+		break;
+	case 0x76:
+		rv = 0x0000; /* 64 KB region 4 size, from ST M29W160EB datasheet */
+		break;
+	case 0x78:
+		rv = 0x0100; /* 64 KB region 4 size, from ST M29W160EB datasheet */
+		break;
+	case 0x80:
+		rv = 0x5000; /* P */
+		break;
+	case 0x82:
+		rv = 0x5200; /* R */
+		break;
+	case 0x84:
+		rv = 0x4900; /* I */
+		break;
+	case 0x86:
+		rv = 0x3100; /* Major version number, ASCII */
+		break;
+	case 0x88:
+		rv = 0x3000; /* Minor version number, ASCII */
+		break;
+	default:
+		rv = 0x0;
+		break;
+	}
+	return rv;
 }
 
-void fakeflash_write(uint32_t vaddr, int16_t val)
+void flash_write(uint32_t vaddr, uint16_t val)
 {
+	printf( "fakeflash write @ 0x%08x <= 0x%08x (pc:0x%08x)\n", vaddr, val, cpu.pc );
+	vaddr &= 0x1fffff;
+	if(vaddr == 0x0 && (val == 0xf0 || val == 0xf0f0))
+	{
+		fakeflash_state = 0;
+		flash_auto_select = 0;
+	}
+	if(vaddr == 0x0 && (val == 0xff || val == 0xffff))
+	{
+		fakeflash_state = 0;
+		flash_auto_select = 0;
+	}
+	if(vaddr == 0xaa && (val == 0x98 || val == 0x9898))
+	{
+		fakeflash_state = 1;
+		flash_log = 1;
+	}
+	if(vaddr == 0xaaa && (val == 0xaa || val == 0xaaaa ) && fakeflash_state == 0 && flash_auto_select == 0)
+	{
+		flash_auto_select = 1;
+	}
+	if(vaddr == 0x554 && (val == 0x55 || val == 0x5555 ) && fakeflash_state == 0 && flash_auto_select == 1)
+	{
+		flash_auto_select = 2;
+	}
+	if(vaddr == 0xaaa && (val == 0x90 || val == 0x9090 ) && fakeflash_state == 0 && flash_auto_select == 2)
+	{
+		flash_auto_select = 3;
+		fakeflash_state = 1;
+	}
+	printf("fakeflash write state: %d\n", fakeflash_state);
 
-  if(vaddr == 0x9f0000aa && val == 0x98)
-    fakeflash_state = 1;
-  if(vaddr == 0x9f0000aa && val == 0xff)
-    fakeflash_state = 0;
-/*   printf("fake flash write 0x%x @ 0x%x\n", val, vaddr); */
 }
 
 void reg_write_byte(uint32_t vaddr, uint8_t val)
@@ -470,10 +619,12 @@ int32_t load_word(uint32_t vaddr, int8_t *ram, int8_t *flash)
 		return (int32_t)get_reg_val(vaddr);
 
 	vaddr = vaddr & ~0x20000000;
+
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(int32_t *)(flash+vaddr-FLASH_START);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+		word = flash_read( vaddr, flash, 4 );
+	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		word = flash_read( vaddr, flash, 4 );
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 		word = *(int32_t *)(ram+vaddr-RAM_START);
 	word = ntohl(word);
 	return word;
@@ -487,15 +638,12 @@ void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 	vaddr = vaddr & ~0x20000000;
 
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
+		return flash_write(vaddr, val);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		*(int32_t *)(ram+vaddr-RAM_START) = htonl(val);
 
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
+ 	printf("can't write to 0x%x\n", vaddr);
 }
 
 uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
@@ -507,9 +655,10 @@ uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
 	else
 		vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(int16_t *)(flash+vaddr-FLASH_START);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+		word = (int16_t)flash_read( vaddr, flash, 2 );
+	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		word = (int16_t)flash_read( vaddr, flash, 2 );
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 		word = *(int16_t *)(ram+vaddr-RAM_START);
 	word = ntohs(word);
 	return word;
@@ -520,20 +669,16 @@ void store_halfword(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return reg_write_short(vaddr, val);
 
+	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
+		return flash_write(vaddr, val);
 	
+	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		return flash_write(vaddr, val);
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		*(int16_t *)(ram+vaddr-RAM_START) = htons(val);
 
-	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
-		fakeflash_write(vaddr, val);
-
-	
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
+	printf("can't write to 0x%x\n", vaddr);
 }
 
 uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
@@ -542,16 +687,15 @@ uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return (int8_t)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
+	vaddr = vaddr & ~0x20000000;
+
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		byte = *(int8_t *)(flash+vaddr-FLASH_START);
-	
+		byte = (int8_t)flash_read( vaddr, flash, 1 );
+	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		byte = (int8_t)flash_read( vaddr, flash, 1 );
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		byte = *(int8_t *)(ram+vaddr-RAM_START);
 
-	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
-		byte = fakeflash_read(vaddr);
 
 	return byte;
 }
@@ -563,15 +707,15 @@ void store_byte(uint32_t vaddr, int8_t val, int8_t *ram, int8_t *flash)
 
 	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
+		return flash_write(vaddr, val);
+
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		return flash_write(vaddr, val);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
 		*(int8_t *)(ram+vaddr-RAM_START) = val;
-	
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
+
+	printf("can't write 0x%02x to 0x%x\n", val, vaddr);
 }
 
 char *r2rn(int32_t reg)
@@ -1504,7 +1648,6 @@ int32_t main(void)
 	int32_t fd;
 	int8_t *flash;
 	int8_t *ram;
-	struct cpu_state cpu;
 
 	flash = malloc(FLASH_SIZE);
 	ram = malloc(RAM_SIZE);
