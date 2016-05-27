@@ -1716,7 +1716,6 @@ void execute(struct cpu_state *cpu)
 		}
 		else 
 		{
-			opcode = decode_special_branch_opcode(instruction);
 			switch(opcode)
 			{
 			case INS_J:     /* 000010 */
