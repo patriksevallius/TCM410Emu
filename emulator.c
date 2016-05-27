@@ -1681,7 +1681,6 @@ void execute(struct cpu_state *cpu)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
 					cpu->delayed_jump = 1;
-					break;
 				}
 				break;
 			case INS_BGEZ:  /* 000001 */
@@ -1689,10 +1688,9 @@ void execute(struct cpu_state *cpu)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
 					cpu->delayed_jump = 1;
-					break;
 				}
 				break;
-			case INS_BLTZL:  /* 000000 */
+			case INS_BLTZL:  /* 000010 */
 				if(cpu->reg[rs] < 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1701,7 +1699,7 @@ void execute(struct cpu_state *cpu)
 				else
 					cpu->pc += 4;
 				break;
-			case INS_BAL:   /* 000010 */
+			case INS_BAL:   /* 010010 */
 			{
 				cpu->jump_pc = cpu->pc + (offset << 2);
 				cpu->reg[31] = cpu->pc + 4;
