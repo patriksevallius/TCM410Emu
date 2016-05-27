@@ -1573,7 +1573,7 @@ void execute(struct cpu_state *cpu)
 				/* if(sa == 0) */
 				/* 	dtrace("\tnop\n"); */
 				/* else */
-				/* 	dtrace("\tsll\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
+				/* 	dtrace("\tsll\t%s, %s, %d" AL "(%s = 0x%x)\n", */
 				/* 		   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_MOVF:   /* 000001 */
@@ -1582,134 +1582,134 @@ void execute(struct cpu_state *cpu)
 				break;
 			case INS_SRL:   /* 000010 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> sa;
-				/* dtrace("\tsrl\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsrl\t%s, %s, %d" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SRA:   /* 000011 */
 				cpu->reg[rd] = cpu->reg[rt] >> sa;
-				/* dtrace("\tsllv\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsllv\t%s, %s, %d" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SLLV:  /* 000100 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
-				/* dtrace("\tsllv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsllv\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SRLV:  /* 000110 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
-				/* dtrace("\tsrlv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsrlv\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SRAV:  /* 000111 */
 				cpu->reg[rd] = (int32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
-				/* dtrace("\tsrav\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsrav\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_JR:    /* 001000 */
 				cpu->jump_pc = cpu->reg[rs] & ~0x20000000;
 				cpu->delayed_jump = 1;
-				/* dtrace("\tjr\t%s\033[100D\33[65C(0x%x)\n", */
+				/* dtrace("\tjr\t%s" AL "(0x%x)\n", */
 				/* 	   r2rn(rs), cpu->jump_pc); */
 				break;
 			case INS_JALR:  /* 001001 */
 				cpu->jump_pc = cpu->reg[rs] & ~0x20000000;
 				cpu->reg[rd] = cpu->pc+4;
 				cpu->delayed_jump = 1;
-				/* dtrace("\tjr\t%s, %s\033[100D\33[65C(0x%x)\n", */
+				/* dtrace("\tjr\t%s, %s" AL "(0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rd), cpu->jump_pc); */
 				break;
 			case INS_MFHI:  /* 010000 */
 				cpu->reg[rd] = cpu->HI;
-				/* dtrace("\tmfhi\t%s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tmfhi\t%s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_MTHI:  /* 010001 */
 				cpu->HI = cpu->reg[rs];
-				/* dtrace("\tmthi\t%s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tmthi\t%s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rs), "HI", cpu->HI); */
 				break;
 			case INS_MFLO:  /* 010010 */
 				cpu->reg[rd] = cpu->LO;
-				/* dtrace("\tmflo\t%s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tmflo\t%s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_MTLO:  /* 010011 */
 				cpu->LO = cpu->reg[rs];
-				/* dtrace("\tmtlo\t%s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tmtlo\t%s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rs), "LO", cpu->LO); */
 				break;
 			case INS_MULT:  /* 011000 */
 				cpu->HI = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) >> 32;
 				cpu->LO = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) & 0xffffffff;
-				/* dtrace("\tmult\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
+				/* dtrace("\tmult\t%s, %s" AL "(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
 			case INS_MULTU: /* 011001 */
 				cpu->HI = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) >> 32;
 				cpu->LO = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) & 0xffffffff;
-				/* dtrace("\tmultu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
+				/* dtrace("\tmultu\t%s, %s" AL "(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
 			case INS_DIV:   /* 011010 */
 				cpu->LO = cpu->reg[rs] / cpu->reg[rt];
 				cpu->HI = cpu->reg[rs] % cpu->reg[rt];
-				/* dtrace("\tdiv\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
+				/* dtrace("\tdiv\t%s, %s" AL "(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
 			case INS_DIVU:  /* 011011 */
 				cpu->LO = (uint32_t)cpu->reg[rs] / (uint32_t)cpu->reg[rt];
 				cpu->HI = (uint32_t)cpu->reg[rs] % (uint32_t)cpu->reg[rt];
-				/* dtrace("\tdivu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
+				/* dtrace("\tdivu\t%s, %s" AL "(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
 			case INS_ADDU:  /* 100001 */
 				cpu->reg[rd] = cpu->reg[rs] + cpu->reg[rt];
-				/* dtrace("\taddu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\taddu\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_ADD:   /* 100000 */
 				cpu->reg[rd] = cpu->reg[rs] + cpu->reg[rt];
-				/* dtrace("\tadd\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tadd\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SUB:   /* 100010 */
 				cpu->reg[rd] = cpu->reg[rs] - cpu->reg[rt];
-				/* dtrace("\tsub\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsub\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SUBU:  /* 100011 */
 				cpu->reg[rd] = cpu->reg[rs] - cpu->reg[rt];
-				/* dtrace("\tsubu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsubu\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_AND:   /* 100100 */
 				cpu->reg[rd] = cpu->reg[rs] & cpu->reg[rt];
-				/* dtrace("\tand\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tand\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_OR:    /* 100101 */
 				cpu->reg[rd] = cpu->reg[rs] | cpu->reg[rt];
-				/* dtrace("\tor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tor\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_XOR:   /* 100110 */
 				cpu->reg[rd] = cpu->reg[rs] ^ cpu->reg[rt];
-				/* dtrace("\tor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tor\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_NOR:   /* 100111 */
 				cpu->reg[rd] = ~(cpu->reg[rs] | cpu->reg[rt]);
-				/* dtrace("\tnor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tnor\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SLT:   /* 101010 */
 				cpu->reg[rd] = cpu->reg[rs] < cpu->reg[rt];
-				/* dtrace("\tslt\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tslt\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			case INS_SLTU:  /* 101011 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rs] < (uint32_t)cpu->reg[rt];
-				/* dtrace("\tsltu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsltu\t%s, %s, %s" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
 			default:
@@ -1730,7 +1730,7 @@ void execute(struct cpu_state *cpu)
 					cpu->delayed_jump = 1;
 					break;
 				}
-				/* dtrace("\tbltz\t%s, 0x%x\033[100D\33[65C(0x%x < 0x0)\n", */
+				/* dtrace("\tbltz\t%s, 0x%x" AL "(0x%x < 0x0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 			case INS_BGEZ:  /* 10000001 */
@@ -1740,7 +1740,7 @@ void execute(struct cpu_state *cpu)
 					cpu->delayed_jump = 1;
 					break;
 				}
-				/* dtrace("\tbgez\t%s, 0x%x\033[100D\33[65C(0x%x < 0x0)\n", */
+				/* dtrace("\tbgez\t%s, 0x%x" AL "(0x%x < 0x0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 			case INS_BLTZL:  /* 10000000 */
@@ -1751,7 +1751,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				/* dtrace("\tbltzl\t%s, 0x%x\033[100D\33[65C(0x%x < 0x0)\n", */
+				/* dtrace("\tbltzl\t%s, 0x%x" AL "(0x%x < 0x0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 			case INS_BAL:   /* 10000010 */
@@ -1797,7 +1797,7 @@ void execute(struct cpu_state *cpu)
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 					cpu->delayed_jump = 1;
 				}
-				/* dtrace("\tbeq\t%s, %s, 0x%x\033[100D\33[65C(0x%x == 0x%x)\n", */
+				/* dtrace("\tbeq\t%s, %s, 0x%x" AL "(0x%x == 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
 			case INS_BNE:   /* 000101 */
@@ -1806,7 +1806,7 @@ void execute(struct cpu_state *cpu)
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 					cpu->delayed_jump = 1;
 				}
-				/* dtrace("\tbne\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
+				/* dtrace("\tbne\t%s, %s, 0x%x" AL "(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
 			case INS_BLEZ:  /* 000110 */
@@ -1815,7 +1815,7 @@ void execute(struct cpu_state *cpu)
 					cpu->jump_pc = cpu->pc + (offset << 2);
 					cpu->delayed_jump = 1;
 				}
-				/* dtrace("\tblez\t%s, 0x%x\033[100D\33[65C(0x%x <= 0)\n", */
+				/* dtrace("\tblez\t%s, 0x%x" AL "(0x%x <= 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 			case INS_BGTZ:  /* 000111 */
@@ -1824,47 +1824,47 @@ void execute(struct cpu_state *cpu)
 					cpu->jump_pc = cpu->pc + (offset << 2);
 					cpu->delayed_jump = 1;
 				}
-				/* dtrace("\tbgtz\t%s, 0x%x\033[100D\33[65C(0x%x > 0)\n", */
+				/* dtrace("\tbgtz\t%s, 0x%x" AL "(0x%x > 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 			case INS_ADDI:  /* 001000 */
 				cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
-				/* dtrace("\taddi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\taddi\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_ADDIU: /* 001001 */
 				cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
-				/* dtrace("\taddiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\taddiu\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_SLTI:  /* 001010 */
 				cpu->reg[rt] = cpu->reg[rs] < (uint32_t)(int32_t)im16;
-				/* dtrace("\tslti\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tslti\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_SLTIU: /* 001011 */
 				cpu->reg[rt] = (uint32_t)cpu->reg[rs] < (int32_t)(uint16_t)im16;
-				/* dtrace("\tsltiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tsltiu\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_ANDI:  /* 001100 */
 				cpu->reg[rt] = cpu->reg[rs] & (int32_t)(uint16_t)im16;
-				/* dtrace("\tandi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tandi\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_ORI:   /* 001101 */
 				cpu->reg[rt] = cpu->reg[rs] | (int32_t)(uint16_t)im16;
-				/* dtrace("\tori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tori\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_XORI:  /* 001110 */
 				cpu->reg[rt] = cpu->reg[rs] ^ (int32_t)(uint16_t)im16;
-				/* dtrace("\txori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\txori\t%s, %s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_LUI:   /* 001111 */
 				cpu->reg[rt] = im16 << 16;
-				/* dtrace("\tlui\t%s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
+				/* dtrace("\tlui\t%s, 0x%x" AL "(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), im16<<16, r2rn(rt), cpu->reg[rt]); */
 				break;
 			case INS_COP0:  /* 010000 */
@@ -1920,7 +1920,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				/* dtrace("\tbeql\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
+				/* dtrace("\tbeql\t%s, %s, 0x%x" AL "(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
 			case INS_BNEL:   /* 010101 */
@@ -1931,7 +1931,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				/* dtrace("\tbnel\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
+				/* dtrace("\tbnel\t%s, %s, 0x%x" AL "(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
 			case INS_BLEZL: /* 010110 */
@@ -1942,7 +1942,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				/* dtrace("\tblezl\t%s, 0x%x\033[100D\33[65C(0x%x <= 0)\n", */
+				/* dtrace("\tblezl\t%s, 0x%x" AL "(0x%x <= 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 				break;
@@ -1954,7 +1954,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				/* dtrace("\tbgtzl\t%s, 0x%x\033[100D\33[65C(0x%x > 0)\n", */
+				/* dtrace("\tbgtzl\t%s, 0x%x" AL "(0x%x > 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 				break;
@@ -1993,7 +1993,7 @@ void execute(struct cpu_state *cpu)
 			case INS_LB:    /* 100000 */
 				vaddr = cpu->reg[base]+offset;
 				cpu->reg[rt] = load_byte(vaddr, cpu->ram, cpu->flash);
-				/* dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlh\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			case INS_LH:    /* 100001 */
@@ -2001,7 +2001,7 @@ void execute(struct cpu_state *cpu)
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
 				cpu->reg[rt] = load_short(vaddr, cpu->ram, cpu->flash);
-				/* dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlh\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			case INS_LWL:   /* 100010 */
@@ -2026,7 +2026,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				cpu->reg[rt] = word;
-				/* dtrace("\tlwl\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlwl\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			}
@@ -2035,13 +2035,13 @@ void execute(struct cpu_state *cpu)
 				/* if(vaddr & 0x3) */
 				/* 	dtrace("Exception address error\n"); */
 				cpu->reg[rt] = load_word(vaddr, cpu->ram, cpu->flash);
-				/* dtrace("\tlw\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlw\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			case INS_LBU:   /* 100100 */
 				vaddr = cpu->reg[base]+offset;
 				cpu->reg[rt] = (int32_t)load_byte(vaddr, cpu->ram, cpu->flash);
-				/* dtrace("\tlbu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlbu\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			case INS_LHU:   /* 100101 */
@@ -2049,7 +2049,7 @@ void execute(struct cpu_state *cpu)
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
 				cpu->reg[rt] = load_short(vaddr, cpu->ram, cpu->flash);
-				/* dtrace("\tlhu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlhu\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			case INS_LWR:   /* 100110 */
@@ -2074,7 +2074,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				cpu->reg[rt] = word;
-				/* dtrace("\tlwr\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
+				/* dtrace("\tlwr\t%s, 0x%x(%s)" AL "(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			}
@@ -2085,7 +2085,7 @@ void execute(struct cpu_state *cpu)
 			case INS_SB:    /* 101000 */
 				vaddr = cpu->reg[base]+offset;
 				store_byte(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
-				/* dtrace("\tsb\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
+				/* dtrace("\tsb\t%s, 0x%x(%s)" AL "(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			case INS_SH:    /* 101001 */
@@ -2093,7 +2093,7 @@ void execute(struct cpu_state *cpu)
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
 				store_short(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
-				/* dtrace("\tsh\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
+				/* dtrace("\tsh\t%s, 0x%x(%s)" AL "(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			case INS_SWL:   /* 101010 */
@@ -2119,7 +2119,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				store_word(vaddr & 0xfffffffc, word, cpu->ram, cpu->flash);
-				/* dtrace("\tswl\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
+				/* dtrace("\tswl\t%s, 0x%x(%s)" AL "(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			}
@@ -2128,7 +2128,7 @@ void execute(struct cpu_state *cpu)
 				/* if(vaddr & 0x3) */
 				/* 	dtrace("Exception address error\n"); */
 				store_word(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
-				/* dtrace("\tsw\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
+				/* dtrace("\tsw\t%s, 0x%x(%s)" AL "(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			case INS_NA11:   /* 101100 */
@@ -2162,7 +2162,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				store_word(vaddr & 0xfffffffc, word, cpu->ram, cpu->flash);
-				/* dtrace("\tswr\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
+				/* dtrace("\tswr\t%s, 0x%x(%s)" AL "(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			}
