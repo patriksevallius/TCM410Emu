@@ -59,6 +59,7 @@ static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
 static int32_t flash_auto_select = 0;
 static bool flash_log = false;
+static bool log_reg = false;
 
 static int32_t pll_control = 0;
 static int32_t blk_enables = 0;
@@ -430,6 +431,8 @@ void reg_write_word(uint32_t vaddr, uint32_t val)
 
 int32_t get_reg_val(uint32_t vaddr)
 {
+	if( log_reg && vaddr != 0xfffe0203 && vaddr != 0xfffe0312 )
+  		printf("Reg read w(0x%x) @ 0x%08x\n", vaddr, cpu.pc);
 	if(vaddr == 0xfffe0000)
 		return 0xa0003348;
 	else if(vaddr == 0xfffe0003)
