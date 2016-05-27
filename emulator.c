@@ -832,7 +832,7 @@ int32_t *get_address(uint32_t vaddr, int8_t *ram, int8_t *flash)
 void process_callbacks(struct cpu_state *cpu)
 {
 	struct callback *cb;
-	
+
 	for(cb = cpu->callbacks; cb; cb = cb->next)
 	{
 	  if(cb->address == cpu->pc)
@@ -1571,7 +1571,7 @@ void execute(struct cpu_state *cpu)
 			case INS_SLL:   /* 000000 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] << sa;
 				break;
-			case INS_MOVF:   /* 000001 */
+			case INS_MOVF:  /* 000001 */
 				printf("\tmovf not implemented\n");
 				exit(1);
 				break;
@@ -1668,7 +1668,7 @@ void execute(struct cpu_state *cpu)
 			opcode = decode_special_branch_opcode(instruction);
 			switch(opcode)
 			{
-			case INS_BLTZ:  /* 10000000 */
+			case INS_BLTZ:  /* 000000 */
 				if(cpu->reg[rs] < 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1676,7 +1676,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				break;
-			case INS_BGEZ:  /* 10000001 */
+			case INS_BGEZ:  /* 000001 */
 				if(cpu->reg[rs] >= 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1684,7 +1684,7 @@ void execute(struct cpu_state *cpu)
 					break;
 				}
 				break;
-			case INS_BLTZL:  /* 10000000 */
+			case INS_BLTZL:  /* 000000 */
 				if(cpu->reg[rs] < 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1693,7 +1693,7 @@ void execute(struct cpu_state *cpu)
 				else
 					cpu->pc += 4;
 				break;
-			case INS_BAL:   /* 10000010 */
+			case INS_BAL:   /* 000010 */
 			{
 				cpu->jump_pc = cpu->pc + (offset << 2);
 				cpu->reg[31] = cpu->pc + 4;
