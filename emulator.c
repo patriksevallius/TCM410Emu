@@ -1848,7 +1848,6 @@ void execute(struct cpu_state *cpu)
 				else
 					cpu->pc += 4;
 				break;
-				break;
 			case INS_BGTZL: /* 010111 */
 				if(cpu->reg[rs] > 0)
 				{
@@ -1857,7 +1856,6 @@ void execute(struct cpu_state *cpu)
 				}
 				else
 					cpu->pc += 4;
-				break;
 				break;
 			case INS_NA2:   /* 011000 */
 				printf("\tundefined instruction na2 not implemented\n");
