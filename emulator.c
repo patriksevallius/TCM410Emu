@@ -6,6 +6,8 @@
 #include <strings.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <stdbool.h>
+#include <string.h>
 #include <stdint.h>
 
 #include "opcode.h"
@@ -435,6 +437,65 @@ void process_callbacks(struct cpu_state *cpu)
 	}
 }
 
+void bp(struct cpu_state *cpu);
+void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *));
+
+bool run;
+bool step;
+inline static void cli( struct cpu_state *cpu )
+{
+	char buf[100] = { 0 };
+	if( !run )
+	{
+		printf("MIPS> ");
+		fflush( stdout );
+		read( 0, buf, 100 );
+		if( strncmp( buf, "run", 3 ) == 0 )
+		{
+			run = true;
+			debug = false;
+			return;
+		}
+		else if( strncmp( buf, "drun", 4 ) == 0 )
+		{
+			run = true;
+			debug = true;
+			return;
+		}
+		else if( strncmp( buf, "step", 3 ) == 0 )
+		{
+			step = true;
+			debug = true;
+			return;
+		}
+		else if( strncmp( buf, "s\n", 2 ) == 0 )
+		{
+			step = true;
+			debug = true;
+			return;
+		}
+		else if( strncmp( buf, "next", 3 ) == 0 )
+		{
+			step = false;
+			run = true;
+			register_callback(cpu, cpu->pc+4, bp);
+			return;
+		}
+		else if( strncmp( buf, "bp", 2 ) == 0 )
+		{
+			int number = (int)strtol(buf + 3, NULL, 0);
+			step = true;
+			register_callback(cpu, number, bp);
+			cli(cpu);
+			return;
+		}
+		if( !step )
+		{
+			exit(1);
+		}
+	}
+}
+
 void execute(struct cpu_state *cpu)
 {
 	int32_t instruction;
@@ -456,6 +517,7 @@ void execute(struct cpu_state *cpu)
 		if(cpu->callbacks)
 			process_callbacks(cpu);
 
+		cli(cpu);
 		instruction = get_instruction(cpu->pc, cpu->ram, cpu->flash);
 
 		cpu->prev_pc[0] = cpu->prev_pc[1];
@@ -1097,9 +1159,10 @@ void print_char(struct cpu_state *cpu)
 	fflush( stdout );
 }
 
-void enable_debug(struct cpu_state *cpu)
+void bp(struct cpu_state *cpu)
 {
-	debug = 1;
+	run = false;
+	debug = true;
 }
 
 int32_t main(void)
@@ -1130,6 +1193,9 @@ int32_t main(void)
 	register_callback(&cpu, 0x8028bcf0, print_string); /*  */
 	register_callback(&cpu, 0x80268558, printf_string); /*  */
 
+	debug = false;
+	run = false;
+	step = false;
 	execute(&cpu);
 
 	return 0;
