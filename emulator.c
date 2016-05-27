@@ -710,7 +710,6 @@ uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
 	else if(vaddr >= RAM_START && vaddr < RAM_END)
 		byte = *(int8_t *)(ram+vaddr-RAM_START);
 
-
 	return byte;
 }
 
@@ -825,8 +824,7 @@ int32_t *get_address(uint32_t vaddr, int8_t *ram, int8_t *flash)
 
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		return (int32_t *)(flash+(vaddr-FLASH_START));
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 		return (int32_t *)(ram+(vaddr-RAM_START));
 	return 0;
 }
@@ -1479,10 +1477,10 @@ void execute(struct cpu_state *cpu)
 {
 	int32_t instruction;
 	int32_t opcode;
-	int32_t rs ;
-	int32_t rt ;
-	int32_t rd ;
-	int32_t sa ;
+	int32_t rs;
+	int32_t rt;
+	int32_t rd;
+	int32_t sa;
 	int32_t base;
 	uint32_t vaddr;
 	int32_t offset;
