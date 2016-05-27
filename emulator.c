@@ -648,7 +648,7 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_LB:    /* 00100000 */
 		vaddr = cpu->reg[base]+offset;
-		cpu->reg[rt] = load_byte(vaddr, cpu->ram, flash);
+		cpu->reg[rt] = load_byte(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
@@ -656,7 +656,7 @@ void execute(struct cpu_state *cpu)
 		vaddr = cpu->reg[base]+offset;
 		if(vaddr & 0x1)
 			dtrace("Exception address error\n");
-		cpu->reg[rt] = load_halfword(vaddr, cpu->ram, flash);
+		cpu->reg[rt] = load_halfword(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
@@ -666,7 +666,7 @@ void execute(struct cpu_state *cpu)
 	    unsigned int word;
 	    	vaddr = cpu->reg[base]+(int)offset;
 		byte = (vaddr & 0x03);
-		word = load_word(vaddr & 0xfffffffc, cpu->ram, flash);
+		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
 		  {
 		  case 0:
@@ -690,13 +690,13 @@ void execute(struct cpu_state *cpu)
 		vaddr = cpu->reg[base]+offset;
 		if(vaddr & 0x3)
 			dtrace("Exception address error\n");
-		cpu->reg[rt] = load_word(vaddr, cpu->ram, flash);
+		cpu->reg[rt] = load_word(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlw\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
 	case INS_LBU:   /* 00100100 */
 		vaddr = cpu->reg[base]+offset;
-		cpu->reg[rt] = (int)load_byte(vaddr, cpu->ram, flash);
+		cpu->reg[rt] = (int)load_byte(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlbu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
@@ -704,7 +704,7 @@ void execute(struct cpu_state *cpu)
 		vaddr = cpu->reg[base]+offset;
 		if(vaddr & 0x1)
 			dtrace("Exception address error\n");
-		cpu->reg[rt] = load_halfword(vaddr, cpu->ram, flash);
+		cpu->reg[rt] = load_halfword(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlhu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
@@ -714,7 +714,7 @@ void execute(struct cpu_state *cpu)
 	    unsigned int word;
 	    	vaddr = cpu->reg[base]+(int)offset;
 		byte = (vaddr & 0x03);
-		word = load_word(vaddr & 0xfffffffc, cpu->ram, flash);
+		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
 		  {
 		  case 0:
@@ -740,7 +740,7 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_SB:    /* 00101000 */
 		vaddr = cpu->reg[base]+offset;
-		store_byte(vaddr, cpu->reg[rt], cpu->ram, flash);
+		store_byte(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
 		dtrace("\tsb\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr);
 		break;
@@ -748,7 +748,7 @@ void execute(struct cpu_state *cpu)
 		vaddr = cpu->reg[base]+offset;
 		if(vaddr & 0x1)
 			dtrace("Exception address error\n");
-		store_halfword(vaddr, cpu->reg[rt], cpu->ram, flash);
+		store_halfword(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
 		dtrace("\tsh\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr);
 		break;
@@ -758,7 +758,7 @@ void execute(struct cpu_state *cpu)
 		unsigned int word;
 	    	vaddr = cpu->reg[base]+(int)offset;
 		byte = (vaddr & 0x03);
-		word = load_word(vaddr & 0xfffffffc, cpu->ram, flash);
+		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
 		  {
 		  case 0:
@@ -774,7 +774,7 @@ void execute(struct cpu_state *cpu)
 		    word = ((cpu->reg[rt] & 0xff000000) >> 24) | ((word & 0xffffff00));
 		    break;
 		  }
-		store_word(vaddr & 0xfffffffc, word, cpu->ram, flash);
+		store_word(vaddr & 0xfffffffc, word, cpu->ram, cpu->flash);
 		dtrace("\tswl\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr);
 		break;
@@ -783,7 +783,7 @@ void execute(struct cpu_state *cpu)
 		vaddr = cpu->reg[base]+offset;
 		if(vaddr & 0x3)
 			dtrace("Exception address error\n");
-		store_word(vaddr, cpu->reg[rt], cpu->ram, flash);
+		store_word(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
 		dtrace("\tsw\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr);
 		break;
@@ -801,7 +801,7 @@ void execute(struct cpu_state *cpu)
 		unsigned int word;
 	    	vaddr = cpu->reg[base]+(int)offset;
 		byte = (vaddr & 0x03);
-		word = load_word(vaddr & 0xfffffffc, cpu->ram, flash);
+		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
 		  {
 		  case 0:
@@ -817,7 +817,7 @@ void execute(struct cpu_state *cpu)
 		    word = cpu->reg[rt];
 		    break;
 		  }
-		store_word(vaddr & 0xfffffffc, word, cpu->ram, flash);
+		store_word(vaddr & 0xfffffffc, word, cpu->ram, cpu->flash);
 		dtrace("\tswr\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr);
 		break;
