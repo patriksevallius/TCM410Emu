@@ -653,7 +653,10 @@ void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 		return flash_write(vaddr, val);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
+	{
 		*(int32_t *)(ram+vaddr-RAM_START) = htonl(val);
+		return;
+	}
 
 	printf("can't write 0x%08x to 0x%x\n", val, vaddr);
 }
@@ -688,7 +691,10 @@ void store_short(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
 		return flash_write(vaddr, val);
 	if(vaddr >= RAM_START && vaddr < RAM_END)
+	{
 		*(int16_t *)(ram+vaddr-RAM_START) = htons(val);
+		return;
+	}
 
 	printf("can't write 0x%04x to 0x%x\n", val, vaddr);
 }
@@ -725,7 +731,10 @@ void store_byte(uint32_t vaddr, int8_t val, int8_t *ram, int8_t *flash)
 		return flash_write(vaddr, val);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
+	{
 		*(int8_t *)(ram+vaddr-RAM_START) = val;
+		return;
+	}
 
 	printf("can't write 0x%02x to 0x%x\n", val, vaddr);
 }
