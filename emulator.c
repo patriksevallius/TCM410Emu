@@ -46,14 +46,20 @@ struct cpu_state
 	int32_t prev_pc[3];
 	int32_t delayed_jump;
 	int32_t jump_pc;
+	int32_t eret;
+	bool in_irq;
   	struct callback *callbacks;
 	int8_t *ram;
 	int8_t *flash;
+	int32_t cop0[32][10];
 };
 
 static int32_t debug = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
+
+static int32_t irq_stat = 0;
+static int32_t uart0_ir = (1 << 5) << 16;
 
 int8_t fakeflash_read(uint32_t vaddr)
 {
@@ -105,6 +111,20 @@ int32_t get_reg_val(uint32_t vaddr)
 		return 0x33483348;
 	else if(vaddr == 0xfffe0003)
 		return 0xa0;
+	else if(vaddr == 0xfffe0010)
+		return irq_stat;
+	else if(vaddr == 0xfffe0310)
+	{
+		/* printf("Reg read uart0 ir mask w(0x%x) = 0x%08x @ 0x%08x\n", vaddr, uart0_ir, cpu.pc); */
+		return uart0_ir;
+	}
+	else if(vaddr == 0xfffe0312)
+	{
+		short ret = uart0_ir >> 16;
+		/* printf("Reg read uart0 ir stat w(0x%x) = 0x%08x @ 0x%08x\n", vaddr, uart0_ir, cpu.pc); */
+		/* uart0_ir &= 0xffff; */
+		return ret;
+	}
 	else if(vaddr == 0xFFFE2000)
 		return 0x1F00000B;
 	else if(vaddr == 0xFFFE2008)
@@ -514,10 +534,59 @@ void execute(struct cpu_state *cpu)
 	{
 		dtrace("0x%x: ", cpu->pc);
 
+		if( (uint32_t)cpu->cop0[9][0] >= (uint32_t)cpu->cop0[11][0] && (uint32_t)cpu->cop0[11][0] > 0 )
+		{
+			/* printf("******************\ncount: %u compare: %u\n******************\n", cpu->cop0[9][0], cpu->cop0[11][0] ); */
+			cpu->cop0[13][0] |= 1 << 15;
+		}
+		else
+		{
+			cpu->cop0[13][0] &= ~( 1 << 15 );
+
+		}	/* tx empty irq */
+		if( ( uart0_ir & 0x00200020 ) == 0x00200020 )
+		{
+			irq_stat |= 4;
+			cpu->cop0[13][0] |= 1 << 10;
+		}
+		else
+		{
+			irq_stat &= ~4;
+			cpu->cop0[13][0] &= ~( 1 << 10 );
+		}
+		if( ( cpu->cop0[12][0] & 0x00000001 ) &&
+			( ( cpu->cop0[13][0] & cpu->cop0[12][0] & 0x0000ff00 ) ) &&
+			( cpu->cop0[12][0] & 0x00000002 ) == 0 &&
+			!cpu->in_irq )
+		{
+			if( cpu->cop0[13][0] == 1 << 15 )
+				dtrace("0x%08x:\tirq timer (0x%08x, 0x%08x, 0x%08x)\n", cpu->pc, cpu->jump_pc, cpu->cop0[12][0], cpu->cop0[13][0]);
+			else if( cpu->cop0[13][0] == 1 << 10 )
+				dtrace("0x%08x:\tirq tx (0x%08x, 0x%08x, 0x%08x)\n", cpu->pc, cpu->jump_pc, cpu->cop0[12][0], cpu->cop0[13][0]);
+			else
+				dtrace("0x%08x:\tirq tx|timer (0x%08x, 0x%08x, 0x%08x)\n", cpu->pc, cpu->jump_pc, cpu->cop0[12][0], cpu->cop0[13][0]);
+
+			if( cpu->delayed_jump )
+			{
+				/* use epc cop0 register instead */
+				cpu->eret = cpu->pc - 4;
+				cpu->delayed_jump = 0;
+			}
+			else
+			{
+				/* use epc cop0 register instead */
+				cpu->eret = cpu->pc;
+			}
+			cpu->cop0[12][0] |= 0x00000002;
+			cpu->pc = 0x80000180;
+			cpu->in_irq = true;
+		}
+
 		if(cpu->callbacks)
 			process_callbacks(cpu);
 
 		cli(cpu);
+		cpu->cop0[9][0]++;
 		instruction = get_instruction(cpu->pc, cpu->ram, cpu->flash);
 
 		cpu->prev_pc[0] = cpu->prev_pc[1];
@@ -638,7 +707,36 @@ void execute(struct cpu_state *cpu)
 			break;
 	    case INS_COP0:  /* 00010000 */
 			/* don't handle at the moment */
-			dtrace("\tcop0\n");
+			/* if(!debug) */
+			/* 	debug = 1; */
+			if( (instruction & 0x03e007f8) == 0)
+			{
+				dtrace("\t%s = cop0[ %d, %x ]\n", r2rn(rt), rd, instruction & 0x3);
+				cpu->reg[rt] = cpu->cop0[rd][instruction & 0x3];
+			}
+			else if( (instruction & 0x00800000) == 0x800000)
+			{
+				dtrace("\tcop0[ %d, %x ] = %s (0x%x)\n", rd, instruction & 0x3, r2rn(rt), cpu->reg[rt]);
+				cpu->cop0[rd][instruction & 0x3] = cpu->reg[rt];
+			}
+			else if( (instruction & 0x42000002) == 0x42000002)
+			{
+				dtrace("\ttlbwi\n");
+			}
+			else if( (instruction & 0x42000018) == 0x42000018)
+			{
+				cpu->cop0[12][0] &= ~0x00000002;
+				/* use epc cop0 register instead */
+				cpu->pc = cpu->eret;
+				cpu->in_irq = false;
+				/* run = false; */
+			}
+			else
+			{
+				dtrace("\tcop0 not implemented 0x%x\n", instruction);
+				exit(1);
+			}
+			/* debug = 0; */
 			break;
 	    case INS_COP1:  /* 00010001 */
 			printf("\tcop1 not implemented\n");
@@ -1107,6 +1205,7 @@ void execute(struct cpu_state *cpu)
 		count++;
 		if(count % 10000000 == 0)
 			timer_int = 1;
+		cpu->cop0[9][10]++; /* Count register */
 	}
 }
 
@@ -1123,13 +1222,20 @@ void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(
 
 void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address)
 {
-	int32_t i;
+	int32_t i,j;
 
 	for(i = 0; i < 32; i++)
 	{
 		cpu->reg[i] = 0;
 	}
-	
+	for(i = 0; i < 32; i++)
+	{
+		for(j = 0; j < 10; j++)
+		{
+			cpu->cop0[i][j] = 0;
+		}
+	}
+
 	cpu->pc = start_address;
 	cpu->delayed_jump = 0;
 	cpu->jump_pc = 0;
