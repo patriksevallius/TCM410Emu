@@ -1599,6 +1599,14 @@ void execute(struct cpu_state *cpu)
 				cpu->reg[rd] = cpu->pc+4;
 				cpu->delayed_jump = 1;
 				break;
+			case INS_MOVZ:  /* 001010 */
+				if(cpu->reg[rt] == 0)
+					cpu->reg[rd] = cpu->reg[rs];
+				break;
+			case INS_MOVN:  /* 001011 */
+				if(cpu->reg[rt] != 0)
+					cpu->reg[rd] = cpu->reg[rs];
+				break;
 			case INS_MFHI:  /* 010000 */
 				cpu->reg[rd] = cpu->HI;
 				break;
