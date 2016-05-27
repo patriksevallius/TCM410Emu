@@ -1699,6 +1699,15 @@ void execute(struct cpu_state *cpu)
 				else
 					cpu->pc += 4;
 				break;
+			case INS_BGEZL:  /* 000011 */
+				if(cpu->reg[rs] >= 0)
+				{
+					cpu->jump_pc = cpu->pc + (offset << 2);
+					cpu->delayed_jump = 1;
+				}
+				else
+					cpu->pc += 4;
+				break;
 			case INS_BAL:   /* 010010 */
 			{
 				cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1718,6 +1727,20 @@ void execute(struct cpu_state *cpu)
 			opcode = decode_special2_opcode(instruction);
 			switch (opcode)
 			{
+			case INS_MUL:   /* 000010 */
+				cpu->reg[rd] = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) & 0xffffffff;
+				break;
+/* #define INS_MADD  0x0 */
+/* #define INS_MADDU 0x1 */
+/* #define INS_MSUB  0x4 */
+/* #define INS_MSUBU 0x5 */
+/* #define INS_CLZ   0x20 */
+/* #define INS_CLO   0x21 */
+/* #define INS_SDBBP 0x3f */
+			default:
+				printf("unknown instruction at 0x%x special_opcode2(0x%x)\n",
+					   cpu->pc-4, decode_special2_opcode(instruction));
+				exit(0);
 			}
 		}
 		else 
