@@ -631,7 +631,6 @@ int32_t load_word(uint32_t vaddr, int8_t *ram, int8_t *flash)
 		return (int32_t)get_reg_val(vaddr);
 
 	vaddr = vaddr & ~0x20000000;
-
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		word = flash_read( vaddr, flash, 4 );
 	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
@@ -648,11 +647,9 @@ void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 		return reg_write_word(vaddr, val);
 
 	vaddr = vaddr & ~0x20000000;
-
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		return flash_write(vaddr, val);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 	{
 		*(int32_t *)(ram+vaddr-RAM_START) = htonl(val);
 		return;
@@ -687,10 +684,9 @@ void store_short(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		return flash_write(vaddr, val);
-	
-	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
 		return flash_write(vaddr, val);
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 	{
 		*(int16_t *)(ram+vaddr-RAM_START) = htons(val);
 		return;
@@ -705,13 +701,13 @@ uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return (int8_t)get_reg_val(vaddr);
-	vaddr = vaddr & ~0x20000000;
 
+	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		byte = (int8_t)flash_read( vaddr, flash, 1 );
 	else if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
 		byte = (int8_t)flash_read( vaddr, flash, 1 );
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 		byte = *(int8_t *)(ram+vaddr-RAM_START);
 
 
@@ -726,11 +722,9 @@ void store_byte(uint32_t vaddr, int8_t val, int8_t *ram, int8_t *flash)
 	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		return flash_write(vaddr, val);
-
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+	else if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		return flash_write(vaddr, val);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
+	else if(vaddr >= RAM_START && vaddr < RAM_END)
 	{
 		*(int8_t *)(ram+vaddr-RAM_START) = val;
 		return;
