@@ -421,27 +421,21 @@ void execute(struct cpu_state *cpu, char *flash, char *ram)
 	int offset;
 	short im16;
 	static int count = 0;
-	static int next_printf = 0;
-
 
 	dtrace("0x%x: ", cpu->pc);
 
-	if(cpu->pc == 0x80260A5C)
-	  {
-	    printf("0x%x", cpu->reg[2]);
-	    printf("%s", ram+(cpu->reg[5]-RAM_START));
-	  }
-
 	if(cpu->pc == 0x80010000)
-	  {
 	    debug = 1;
-	  }
 
-	if(cpu->pc == 0x80500170)
-	  {
-	    next_printf = 1;
-	  }
+	if(cpu->pc == 0x80260A5C)
+	    printf("%s", ram+(cpu->reg[5]-RAM_START));
 
+	if(cpu->pc == 0x81f837b0)
+	  printf("%c", cpu->reg[4]);
+
+	if(cpu->pc == 0x81f800a8)
+	  printf("%c", cpu->reg[4]);
+	
 	instruction = get_instruction(flash, ram, cpu->pc);
 	opcode = decode_opcode(instruction);
 	if(opcode == 0)
@@ -466,17 +460,6 @@ void execute(struct cpu_state *cpu, char *flash, char *ram)
 	rt = get_rt(instruction);
 	sa = get_sa(instruction);
 	vaddr = cpu->reg[base]+offset;
-
-	if(next_printf)
-	  {
-	    if(cpu->pc == 0x81f837b0)
-	      printf("%c", cpu->reg[4]);
-	  }
-	else
-	  {
-	    if(cpu->pc == 0x81f800a8)
-	      printf("%c", cpu->reg[4]);
-	  }
 
 	switch(opcode)
 	{
