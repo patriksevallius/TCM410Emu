@@ -2248,6 +2248,11 @@ void bp(struct cpu_state *cpu)
 	debug = true;
 }
 
+void clear_workQIsEmpty(struct cpu_state *cpu)
+{
+	*(int*)(cpu->ram+(0x8035e2d8-0x80000000)) = 0;
+}
+
 int32_t main(void)
 {
 	int32_t fd;
