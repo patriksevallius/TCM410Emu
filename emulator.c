@@ -25,6 +25,15 @@
 
 #define dtrace(...) do { if( debug == 1 ) fprintf(stderr, __VA_ARGS__); } while(0)
 
+struct cpu_state;
+
+struct callback
+{
+	struct callback* next;
+	unsigned int address;
+	void(*callback)(struct cpu_state *);
+};
+
 struct cpu_state
 {
 	int reg[32];
@@ -33,6 +42,7 @@ struct cpu_state
 	int pc;
 	int delayed_jump;
 	int jump_pc;
+  	struct callback *callbacks;
 	char *ram;
 	char *flash;
 };
@@ -410,6 +420,19 @@ int *get_address(unsigned int vaddr, char *ram, char *flash)
 	return 0;
 }
 
+void process_callbacks(struct cpu_state *cpu)
+{
+	struct callback *cb;
+	
+	cb = cpu->callbacks;
+	while(cb)
+	{
+	  if(cb->address == cpu->pc)
+		cb->callback(cpu);
+	  cb = cb->next;
+	}
+}
+
 void execute(struct cpu_state *cpu)
 {
 	int instruction;
@@ -426,18 +449,9 @@ void execute(struct cpu_state *cpu)
 
 	dtrace("0x%x: ", cpu->pc);
 
-	if(cpu->pc == 0x80010000)
-	    debug = 1;
+	if(cpu->callbacks)
+	  process_callbacks(cpu);
 
-	if(cpu->pc == 0x80260A5C)
-	    printf("%s", cpu->ram+(cpu->reg[5]-RAM_START));
-
-	if(cpu->pc == 0x81f837b0)
-	  printf("%c", cpu->reg[4]);
-
-	if(cpu->pc == 0x81f800a8)
-	  printf("%c", cpu->reg[4]);
-	
 	instruction = get_instruction(cpu->pc, cpu->ram, cpu->flash);
 	opcode = decode_opcode(instruction);
 	if(opcode == 0)
@@ -1023,11 +1037,20 @@ void execute(struct cpu_state *cpu)
 	count++;
 	if(count % 10000000 == 0)
 	  timer_int = 1;
-/* 	if(count % 10000 == 0) */
-/* 		printf("count: %d\n", count); */
 }
 
-void initialize_cpu(struct cpu_state *cpu, char *ram, char *flash, int start_address)
+void register_callback(struct cpu_state *cpu, unsigned int address, void(*callback)(struct cpu_state *))
+{
+  struct callback *cb;
+  cb = (struct callback*)malloc(sizeof(struct callback));
+
+  cb->address = address;
+  cb->callback = callback;
+  cb->next = cpu->callbacks;
+  cpu->callbacks = cb;
+}
+
+void initialize_cpu(struct cpu_state *cpu, char* ram, char* flash, int start_address)
 {
 	int i;
 
@@ -1041,8 +1064,23 @@ void initialize_cpu(struct cpu_state *cpu, char *ram, char *flash, int start_add
 	cpu->jump_pc = 0;
 	cpu->HI = 0;
 	cpu->LO = 0;
+	cpu->callbacks = NULL;
 	cpu->ram = ram;
 	cpu->flash = flash;
+}
+
+void print_string(struct cpu_state *cpu)
+{
+	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
+}
+
+void print_char(struct cpu_state *cpu)
+{
+	printf("%c", cpu->reg[4]);
+}
+void enable_debug(struct cpu_state *cpu)
+{
+	debug = 1;
 }
 
 int main(void)
@@ -1062,6 +1100,10 @@ int main(void)
 	read(fd, (void *)flash, FLASH_SIZE);
 
 	initialize_cpu(&cpu, ram, flash, FLASH_START);
+	register_callback(&cpu, 0x80260a5c, print_string);
+	register_callback(&cpu, 0x81f837b0, print_char);
+	register_callback(&cpu, 0x81f800a8, print_char);
+	register_callback(&cpu, 0x80010000, enable_debug);
 
 	while(1)
 		execute(&cpu);
