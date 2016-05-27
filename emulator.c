@@ -58,8 +58,28 @@ static int32_t debug = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
 
+static int32_t pll_control = 0;
+static int32_t blk_enables = 0;
+static int32_t perf_sys_pll = 0;
+static int32_t irq_mask = 0;
 static int32_t irq_stat = 0;
+static int32_t timer_ctl0 = 0;
+static int32_t timer_ctl1 = 0;
+static int32_t timer_ctl2 = 0;
+static int32_t uart0_ctrl = 0;
+static int32_t uart0_baud_rate = 0;
+static int32_t uart0_mctl = 0;
 static int32_t uart0_ir = (1 << 5) << 16;
+static int32_t mpi_csbase_0 = 0;
+static int32_t mpi_csctl_0 = 0;
+static int32_t mpi_csbase_1 = 0;
+static int32_t mpi_csctl_1 = 0;
+static int32_t pci_timers = 0;
+static int32_t sdram_cfg = 0;
+static int32_t sdram_unk1 = 0;
+static int32_t sdram_unk2 = 0;
+static int32_t sdram_mbase = 0;
+static int32_t sdram_unk3 = 0;
 
 int8_t fakeflash_read(uint32_t vaddr)
 {
@@ -105,12 +125,172 @@ void fakeflash_write(uint32_t vaddr, int16_t val)
 /*   printf("fake flash write 0x%x @ 0x%x\n", val, vaddr); */
 }
 
+void reg_write_byte(uint32_t vaddr, uint8_t val)
+{
+	/* printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val); */
+	if(vaddr == 0xfffe0008)
+	{
+		perf_sys_pll = (perf_sys_pll & 0xffffff00) | val;
+		printf("Set perf sys pll b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0301)
+	{
+		uart0_ctrl = (uart0_ctrl & 0xffff00ff) | val << 8;
+		printf("Set uart0 ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0302)
+	{
+		uart0_ctrl = (uart0_ctrl & 0xff00ffff) | val << 16;
+		printf("Set uart0 ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0303)
+	{
+		uart0_ctrl = (uart0_ctrl & 0x00ffffff) | val << 24;
+		printf("Set uart0 ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe030a)
+	{
+		uart0_mctl = (uart0_mctl & 0xff00ffff) | val << 16;
+		printf("Set uart0 mctl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0317)
+	{
+//		printf("Set uart0 txbuf '%c'\n", val);
+		printf("%c", val);
+		fflush(stdout);
+		uart0_ir |= (1 << 5) << 16;
+	}
+	else
+	{
+		/* printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val); */
+		/* exit(1); */
+	}
+}
+
+void reg_write_short(uint32_t vaddr, uint16_t val)
+{
+	/* printf("Reg write s(0x%x) = 0x%04x\n", vaddr, val); */
+	if(vaddr == 0xfffe0006)
+	{
+		blk_enables = (blk_enables & 0x0000ffff) | val << 16;
+		printf("Set blk enables s(0x%x) = 0x%04x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0310)
+	{
+		uart0_ir = (uart0_ir & 0xffff0000) | val;
+		/* printf("Set uart0 ir s(0x%x) = 0x%04x @ 0x%08x\n", vaddr, val, cpu.pc); */
+	}
+	else if(vaddr == 0xfffe0316)
+	{
+//		printf("Set uart0 txbuf '%c'\n", val);
+		printf("%c", val);
+		fflush(stdout);
+		uart0_ir |= (1 << 5) << 16;
+	}
+	else
+	{
+		/* printf("Reg write s(0x%x) = 0x%04x\n", vaddr, val); */
+		/* exit(1); */
+	}
+}
+
+void reg_write_word(uint32_t vaddr, uint32_t val)
+{
+	/* printf("Reg write w(0x%x) = 0x%08x\n", vaddr, val); */
+	if(vaddr == 0xfffe0008)
+	{
+		printf("Set PLL_control w(0x%x) = 0x%08x\n", vaddr, val);
+		pll_control = val;
+	}
+	else if(vaddr == 0xfffe000c)
+	{
+		printf("Set irq mask w(0x%x) = 0x%08x\n", vaddr, val);
+		irq_mask = val;
+	}
+	else if(vaddr == 0xfffe0204)
+	{
+		printf("Set timer0 ctl w(0x%x) = 0x%08x\n", vaddr, val);
+		timer_ctl0 = val;
+	}
+	else if(vaddr == 0xfffe0208)
+	{
+		printf("Set timer1 ctl w(0x%x) = 0x%08x\n", vaddr, val);
+		timer_ctl1 = val;
+	}
+	else if(vaddr == 0xfffe020c)
+	{
+		printf("Set timer2 ctl w(0x%x) = 0x%08x\n", vaddr, val);
+		timer_ctl2 = val;
+	}
+	else if(vaddr == 0xfffe0304)
+	{
+		printf("Set uart0 baud w(0x%x) = 0x%08x\n", vaddr, val);
+		uart0_baud_rate = val;
+	}
+	else if(vaddr == 0xfffe2000)
+	{
+		printf("Set mpi csbase0 w(0x%x) = 0x%08x\n", vaddr, val);
+		mpi_csbase_0 = val;
+	}
+	else if(vaddr == 0xfffe2004)
+	{
+		printf("Set mpi csctl0 w(0x%x) = 0x%08x\n", vaddr, val);
+		mpi_csctl_0 = val;
+	}
+	else if(vaddr == 0xfffe2008)
+	{
+		printf("Set mpi csbase1 w(0x%x) = 0x%08x\n", vaddr, val);
+		mpi_csbase_1 = val;
+	}
+	else if(vaddr == 0xfffe200c)
+	{
+		printf("Set mpi csctl1 w(0x%x) = 0x%08x\n", vaddr, val);
+		mpi_csctl_1 = val;
+	}
+	else if(vaddr == 0xfffe2040)
+	{
+		printf("Set pci timers w(0x%x) = 0x%08x\n", vaddr, val);
+		pci_timers = val;
+	}
+	else if(vaddr == 0xfffe2300)
+	{
+		printf("Set sdram cfg w(0x%x) = 0x%08x\n", vaddr, val);
+		sdram_cfg = val;
+	}
+	else if(vaddr == 0xfffe2304)
+	{
+		printf("Set sdram unk1 w(0x%x) = 0x%08x\n", vaddr, val);
+		sdram_unk1 = val;
+	}
+	else if(vaddr == 0xfffe2308)
+	{
+		printf("Set sdram unk2 w(0x%x) = 0x%08x\n", vaddr, val);
+		sdram_unk2 = val;
+	}
+	else if(vaddr == 0xfffe230c)
+	{
+		printf("Set sdram mbase w(0x%x) = 0x%08x\n", vaddr, val);
+		sdram_mbase = val;
+	}
+	else
+	{
+		/* printf("Reg write w(0x%x) = 0x%08x\n", vaddr, val); */
+		/* exit(1); */
+	}
+}
+
 int32_t get_reg_val(uint32_t vaddr)
 {
 	if(vaddr == 0xfffe0000)
-		return 0x33483348;
+		return 0xa0003348;
 	else if(vaddr == 0xfffe0003)
 		return 0xa0;
+	else if(vaddr == 0xfffe0006)
+		return blk_enables >> 16;
+	else if(vaddr == 0xfffe0008)
+		return pll_control;
+	else if(vaddr == 0xfffe000c)
+		return irq_mask;
 	else if(vaddr == 0xfffe0010)
 		return irq_stat;
 	else if(vaddr == 0xfffe0310)
@@ -151,18 +331,26 @@ int32_t get_reg_val(uint32_t vaddr)
 		return 0x00000000;
 	else if(vaddr == 0xFFFE0203)
 	  {
-	    if(timer_int == 1) {
+	    if(timer_int == 2) {
+	      timer_int = 1;
+	      return 0xff;
+	    }
+	    else if(timer_int == 1) {
 	      timer_int = 0;
 	      return 0xff;
 	    }
 	    else  
 	      return 0x0;
 	  }
-	else if(vaddr == 0xFFFE0312)
-	  return 0xffffffff;
+	else if(vaddr == 0xFFFE2308)
+	{
+	  return sdram_unk3;
+	}
 	else
-	printf("Registry access b(0x%x)\n", vaddr);
-
+	{
+		/* printf("Reg read w(0x%x) @ 0x%08x\n", vaddr, cpu.pc); */
+		/* exit(1); */
+	}
 	return 0;
 }
 
@@ -233,14 +421,55 @@ int32_t get_base(int32_t instruction)
 	return get_rs(instruction);
 }
 
+int32_t flash_read(uint32_t vaddr, int8_t *flash, uint8_t width)
+{
+	if( flash_log && fakeflash_state )
+	{
+		printf("flash read (%u)0x%08x (pc:0x%08x)\n", width, vaddr, cpu.pc);
+	}
+	switch( width )
+	{
+	case 1:
+		if(fakeflash_state)
+		{
+			return flash_read_byte(vaddr);
+		}
+		else
+		{
+			return *(int8_t *)(flash+vaddr-FLASH_START);
+		}
+	case 2:
+		if(fakeflash_state)
+		{
+			return flash_read_short(vaddr);
+		}
+		else
+		{
+			return *(int16_t *)(flash+vaddr-FLASH_START);
+		}
+	case 4:
+		if(fakeflash_state)
+		{
+			/* printf("read word in cfi state\n"); */
+			/* exit(1); */
+			return 0;
+		}
+		else
+		{
+			return *(int32_t *)(flash+vaddr-FLASH_START);
+		}
+	}
+	return 0;
+}
+
 int32_t load_word(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
 	int32_t word = 0;
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return (int32_t)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
+
+	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		word = *(int32_t *)(flash+vaddr-FLASH_START);
 	
@@ -253,9 +482,9 @@ int32_t load_word(uint32_t vaddr, int8_t *ram, int8_t *flash)
 void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
+		return reg_write_word(vaddr, val);
+
+	vaddr = vaddr & ~0x20000000;
 
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		goto error;
@@ -289,9 +518,8 @@ uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
 void store_halfword(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
+		return reg_write_short(vaddr, val);
+
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		goto error;
 	
@@ -331,9 +559,9 @@ uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
 void store_byte(uint32_t vaddr, int8_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
+		return reg_write_byte(vaddr, val);
+
+	vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
 		goto error;
 	
