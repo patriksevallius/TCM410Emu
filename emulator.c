@@ -41,6 +41,7 @@ struct cpu_state
 	int32_t HI;
 	int32_t LO;
 	int32_t pc;
+	int32_t prev_pc[3];
 	int32_t delayed_jump;
 	int32_t jump_pc;
   	struct callback *callbacks;
@@ -454,6 +455,10 @@ void execute(struct cpu_state *cpu)
 	  process_callbacks(cpu);
 
 	instruction = get_instruction(cpu->pc, cpu->ram, cpu->flash);
+
+	cpu->prev_pc[0] = cpu->prev_pc[1];
+	cpu->prev_pc[1] = cpu->prev_pc[2];
+	cpu->prev_pc[2] = cpu->pc;
 	opcode = decode_opcode(instruction);
 	if(opcode == 0)
 		opcode = decode_special_opcode(instruction);
@@ -1075,6 +1080,12 @@ void print_string(struct cpu_state *cpu)
 	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
 }
 
+void printf_string(struct cpu_state *cpu)
+{
+	printf("printf@0x%08x: ", cpu->prev_pc[2] );
+	printf((char *)get_address(cpu->reg[4], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[6], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[7], cpu->ram, cpu->flash));
+}
+
 void print_char(struct cpu_state *cpu)
 {
 	printf("%c", cpu->reg[4]);
@@ -1101,10 +1112,16 @@ int32_t main(void)
 	read(fd, (void *)flash, FLASH_SIZE);
 
 	initialize_cpu(&cpu, ram, flash, FLASH_START);
-	register_callback(&cpu, 0x80260a5c, print_string);
-	register_callback(&cpu, 0x81f837b0, print_char);
-	register_callback(&cpu, 0x81f800a8, print_char);
-	register_callback(&cpu, 0x80010000, enable_debug);
+
+	/* SB5100 */
+	/* register_callback(&cpu, 0x81f800a8, print_char); /\* bootloader putc *\/ */
+	/* register_callback(&cpu, 0x8027f1c0, print_string); /\* bcm_some_print_function *\/ */
+	/* register_callback(&cpu, 0x8025ca90, print_string); /\* printbuf, call to write *\/ */
+	/* register_callback(&cpu, 0x8025b8f8, printf_string); /\* printf *\/ */
+
+	/* TCM410 */
+	register_callback(&cpu, 0x8028bcf0, print_string); /*  */
+	register_callback(&cpu, 0x80268558, printf_string); /*  */
 
 	while(1)
 		execute(&cpu);
