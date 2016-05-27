@@ -2225,6 +2225,7 @@ void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t s
 
 void print_string(struct cpu_state *cpu)
 {
+	printf("print@0x%08x: ", cpu->prev_pc[2] );
 	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
 	fflush( stdout );
 }
