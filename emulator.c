@@ -1790,7 +1790,7 @@ void execute(struct cpu_state *cpu)
 				}
 				else if( (instruction & 0x00800000) == 0x800000)
 				{
-					/* cpu->cop0[rd][instruction & 0x3] = cpu->reg[rt]; */
+					cpu->cop0[rd][instruction & 0x3] = cpu->reg[rt];
 				}
 				else if( (instruction & 0x42000002) == 0x42000002)
 				{
