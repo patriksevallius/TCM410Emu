@@ -42,75 +42,376 @@ struct cpu_state
 	int jump_pc;
 };
 
-static int get_instruction(char *flash, char *ram, unsigned int address);
-static unsigned int decode_opcode(unsigned int instruction);
-static unsigned int decode_special_opcode(unsigned int instruction);
-static unsigned int decode_special_branch_opcode(unsigned int instruction);
-static void execute(struct cpu_state *cpu, char *flash, char *ram);
-static void initialize_cpu(struct cpu_state *cpu, int start_address);
-static int get_jump_address(int instruction, int pc);
-static int get_base(int instruction);
-static int get_rs(int instruction);
-static int get_rt(int instruction);
-static int get_rd(int instruction);
-static int get_sa(int instruction);
-static short get_immediate16(int instruction);
-static short get_offset(int instruction);
-static int load_word(unsigned int vaddr, char *ram, char *flash);
-static void store_word(unsigned int vaddr, int val, char *ram, char *flash);
-static unsigned short load_halfword(unsigned int vaddr, char *ram, char *flash);
-static void store_halfword(unsigned int vaddr, short val, char *ram, char *flash);
-static unsigned char load_byte(unsigned int vaddr, char *ram, char *flash);
-static void store_byte(unsigned int vaddr, char val, char *ram, char *flash);
-static char fakeflash_read(unsigned int vaddr);
-static void fakeflash_write(unsigned int vaddr, short val);
-static int get_reg_val(unsigned int vaddr);
-#if (DEBUG == 1)
-static char *r2rn(int reg);
-#endif
-/* static void dump_regs(struct cpu_state *cpu); */
-/* static int *get_address(unsigned int vaddr, char *ram, char *flash); */
-
 static int timer_int = 0;
+static int fakeflash_state = 0;
 
-int main(void)
+char fakeflash_read(unsigned int vaddr)
 {
-	int fd;
-	char *flash;
-	char *ram;
-	struct cpu_state cpu;
+  char rv = '\0';
 
-	flash = malloc(FLASH_SIZE);
-	ram = malloc(RAM_SIZE);
-	bzero((void *)flash, FLASH_SIZE);
-	bzero((void *)ram, RAM_SIZE);
+  if(fakeflash_state == 1)
+    switch(vaddr)
+      {
+      case 0x9f000001:
+	rv = 'P';
+	break;
+      case 0x9f000003:
+	rv = 'R';
+	break;
+      case 0x9f000005:
+	rv = 'I';
+	break;
+      case 0x9f000021:
+	rv = 'Q';
+	break;
+      case 0x9f000023:
+	rv = 'R';
+	break;
+      case 0x9f000025:
+	rv = 'Y';
+	break;
+    default:
+	rv = '\0';
+	break;
+      }
 
-	fd = open("fw.bin", O_RDONLY);
+/*   printf("fake flash read @ 0x%x (0x%x)\n", vaddr, rv); */
+  return rv;
+}
 
-	read(fd, (void *)flash, FLASH_SIZE);
+void fakeflash_write(unsigned int vaddr, short val)
+{
 
-	initialize_cpu(&cpu, FLASH_START);
+  if(vaddr == 0x9f0000aa && val == 0x98)
+    fakeflash_state = 1;
+  if(vaddr == 0x9f0000aa && val == 0xff)
+    fakeflash_state = 0;
+/*   printf("fake flash write 0x%x @ 0x%x\n", val, vaddr); */
+}
 
-	while(1)
-		execute(&cpu, flash, ram);
+int get_reg_val(unsigned int vaddr)
+{
+	if(vaddr == 0xfffe0000)
+		return 0x33483348;
+	else if(vaddr == 0xfffe0003)
+		return 0xa0;
+	else if(vaddr == 0xFFFE2000)
+		return 0x1F00000B;
+	else if(vaddr == 0xFFFE2008)
+		return 0x1A000008;
+	else if(vaddr == 0xFFFE2010)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE2018)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE2020)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE2028)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE2004)
+		return 0x00000019;
+	else if(vaddr == 0xFFFE200C)
+		return 0x00000019;
+	else if(vaddr == 0xFFFE2014)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE201C)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE2024)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE202C)
+		return 0x00000000;
+	else if(vaddr == 0xFFFE0203)
+	  {
+	    if(timer_int == 1) {
+	      timer_int = 0;
+	      return 0xff;
+	    }
+	    else  
+	      return 0x0;
+	  }
+	else if(vaddr == 0xFFFE0312)
+	  return 0xffffffff;
+	else
+	printf("Registry access b(0x%x)\n", vaddr);
 
 	return 0;
 }
 
-void initialize_cpu(struct cpu_state *cpu, int start_address)
+int get_instruction(char *flash, char *ram, unsigned int address)
 {
-	int i;
+	int instruction = 0x0;
+	if(address >= FLASH_START && address < FLASH_END)
+		instruction = *(int *)(flash+address-FLASH_START);
+	else if(address >= RAM_START && address < RAM_END)
+		instruction = *(int *)(ram+address-RAM_START);
+	instruction = ntohl(instruction);
+	return instruction;
+}
 
-	for(i = 0; i < 32; i++)
-	{
-		cpu->reg[i] = 0;
-	}
+unsigned int decode_opcode(unsigned int instruction)
+{
+	return instruction >> 26;
+}
+
+unsigned int decode_special_opcode(unsigned int instruction)
+{
+	return (instruction & 0x3f) | 0x40;
+}
+
+unsigned int decode_special_branch_opcode(unsigned int instruction)
+{
+	return (instruction & 0x1f0000) >>16 | 0x80;
+}
+
+int get_jump_address(int instruction, int pc)
+{
+	instruction = (pc & 0xf0000000) | ((instruction & 0x03ffffff) << 2);
+	return instruction;
+}
+
+int get_rs(int instruction)
+{
+	return (instruction & 0x03e00000) >> 21;
+}
+
+int get_rt(int instruction)
+{
+	return (instruction & 0x001f0000) >> 16;
+}
+
+int get_rd(int instruction)
+{
+	return (instruction & 0x0000f800) >> 11;
+}
+
+int get_sa(int instruction)
+{
+	return (instruction & 0x000007c0) >> 6;
+}
+
+short get_immediate16(int instruction)
+{
+	return (instruction & 0x0000ffff);
+}
+
+short get_offset(int instruction)
+{
+	return (instruction & 0x0000ffff);
+}
+
+int get_base(int instruction)
+{
+	return get_rs(instruction);
+}
+
+int load_word(unsigned int vaddr, char *ram, char *flash)
+{
+	int word = 0;
+
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		return (int)get_reg_val(vaddr);
+	else
+		vaddr = vaddr & ~0x20000000;
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		word = *(int *)(flash+vaddr-FLASH_START);
 	
-	cpu->pc = start_address;
-	cpu->delayed_jump = 0;
-	cpu->jump_pc = 0;
-	cpu->HI = 0;
-	cpu->LO = 0;
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		word = *(int *)(ram+vaddr-RAM_START);
+	word = ntohl(word);
+	return word;
+}
+
+void store_word(unsigned int vaddr, int val, char *ram, char *flash)
+{
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		goto error;
+	else
+		vaddr = vaddr & ~0x20000000;
+
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		goto error;
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		*(int *)(ram+vaddr-RAM_START) = htonl(val);
+
+	return;
+error:
+	(void)0;
+/* 	printf("can't write to 0x%x\n", vaddr); */
+}
+
+unsigned short load_halfword(unsigned int vaddr, char *ram, char *flash)
+{
+	short word = 0;
+
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		return (short)get_reg_val(vaddr);
+	else
+		vaddr = vaddr & ~0x20000000;
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		word = *(short *)(flash+vaddr-FLASH_START);
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		word = *(short *)(ram+vaddr-RAM_START);
+	word = ntohs(word);
+	return word;
+}
+
+void store_halfword(unsigned int vaddr, short val, char *ram, char *flash)
+{
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		goto error;
+	else
+		vaddr = vaddr & ~0x20000000;
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		goto error;
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		*(short *)(ram+vaddr-RAM_START) = htons(val);
+
+	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		fakeflash_write(vaddr, val);
+
+	
+	return;
+error:
+	(void)0;
+/* 	printf("can't write to 0x%x\n", vaddr); */
+}
+
+unsigned char load_byte(unsigned int vaddr, char *ram, char *flash)
+{
+	char byte = 0;
+
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		return (char)get_reg_val(vaddr);
+	else
+		vaddr = vaddr & ~0x20000000;
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		byte = *(char *)(flash+vaddr-FLASH_START);
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		byte = *(char *)(ram+vaddr-RAM_START);
+
+	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
+		byte = fakeflash_read(vaddr);
+
+	return byte;
+}
+
+void store_byte(unsigned int vaddr, char val, char *ram, char *flash)
+{
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		goto error;
+	else
+		vaddr = vaddr & ~0x20000000;
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		goto error;
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		*(char *)(ram+vaddr-RAM_START) = val;
+	
+	return;
+error:
+	(void)0;
+/* 	printf("can't write to 0x%x\n", vaddr); */
+}
+
+char *r2rn(int reg)
+{
+	switch (reg)
+	{
+	case 0:
+		return "$0";
+	case 1:
+		return "$at";
+	case 2:
+		return "$v0";
+	case 3:
+		return "$v1";
+	case 4:
+		return "$a0";
+	case 5:
+		return "$a1";
+	case 6:
+		return "$a2";
+	case 7:
+		return "$a3";
+	case 8:
+		return "$t0";
+	case 9:
+		return "$t1";
+	case 10:
+		return "$t2";
+	case 11:
+		return "$t3";
+	case 12:
+		return "$t4";
+	case 13:
+		return "$t5";
+	case 14:
+		return "$t6";
+	case 15:
+		return "$t7";
+	case 16:
+		return "$s0";
+	case 17:
+		return "$s1";
+	case 18:
+		return "$s2";
+	case 19:
+		return "$s3";
+	case 20:
+		return "$s4";
+	case 21:
+		return "$s5";
+	case 22:
+		return "$s6";
+	case 23:
+		return "$s7";
+	case 24:
+		return "$t8";
+	case 25:
+		return "$t9";
+	case 26:
+		return "$k0";
+	case 27:
+		return "$k1";
+	case 28:
+		return "$gp";
+	case 29:
+		return "$sp";
+	case 30:
+		return "$s8";
+	case 31:
+		return "$ra";
+
+	}
+	return "";
+}
+
+#if 0
+void dump_regs(struct cpu_state *cpu)
+{
+  dtrace("$0:  0x%08x $at: 0x%08x $v0: 0x%08x $v1: 0x%08x $a0: 0x%08x $a1: 0x%08x $a2: 0x%08x $a3: 0x%08x\n", cpu->reg[0], cpu->reg[1], cpu->reg[2], cpu->reg[3], cpu->reg[4], cpu->reg[5], cpu->reg[6], cpu->reg[7]);
+  dtrace("$t0: 0x%08x $t1: 0x%08x $t2: 0x%08x $t3: 0x%08x $t4: 0x%08x $t5: 0x%08x $t6: 0x%08x $t7: 0x%08x\n", cpu->reg[8], cpu->reg[9], cpu->reg[10], cpu->reg[11], cpu->reg[12], cpu->reg[13], cpu->reg[14], cpu->reg[15]);
+  dtrace("$s0: 0x%08x $s1: 0x%08x $s2: 0x%08x $s3: 0x%08x $s4: 0x%08x $s5: 0x%08x $s6: 0x%08x $s7: 0x%08x\n", cpu->reg[16], cpu->reg[17], cpu->reg[18], cpu->reg[19], cpu->reg[20], cpu->reg[21], cpu->reg[22], cpu->reg[23]);
+  dtrace("$t8: 0x%08x $t9: 0x%08x $k0: 0x%08x $k1: 0x%08x $gp: 0x%08x $sp: 0x%08x $s8: 0x%08x $ra: 0x%08x\n", cpu->reg[24], cpu->reg[25], cpu->reg[26], cpu->reg[27], cpu->reg[28], cpu->reg[29], cpu->reg[30], cpu->reg[31]);
+}
+#endif
+
+int *get_address(unsigned int vaddr, char *ram, char *flash)
+{
+	if(vaddr >= REG_START && vaddr <= REG_END)
+		return 0;
+	else
+		vaddr = vaddr & ~0x20000000;
+
+	if(vaddr >= FLASH_START && vaddr < FLASH_END)
+		return (int *)(flash+vaddr-FLASH_START);
+	
+	if(vaddr >= RAM_START && vaddr < RAM_END)
+		return (int *)(ram+vaddr-RAM_START);
+	return 0;
 }
 
 void execute(struct cpu_state *cpu, char *flash, char *ram)
@@ -747,375 +1048,42 @@ void execute(struct cpu_state *cpu, char *flash, char *ram)
 /* 		printf("count: %d\n", count); */
 }
 
-int get_instruction(char *flash, char *ram, unsigned int address)
+void initialize_cpu(struct cpu_state *cpu, int start_address)
 {
-	int instruction = 0x0;
-	if(address >= FLASH_START && address < FLASH_END)
-		instruction = *(int *)(flash+address-FLASH_START);
-	else if(address >= RAM_START && address < RAM_END)
-		instruction = *(int *)(ram+address-RAM_START);
-	instruction = ntohl(instruction);
-	return instruction;
-}
+	int i;
 
-unsigned int decode_opcode(unsigned int instruction)
-{
-	return instruction >> 26;
-}
-
-unsigned int decode_special_opcode(unsigned int instruction)
-{
-	return (instruction & 0x3f) | 0x40;
-}
-
-unsigned int decode_special_branch_opcode(unsigned int instruction)
-{
-	return (instruction & 0x1f0000) >>16 | 0x80;
-}
-
-
-int get_jump_address(int instruction, int pc)
-{
-	instruction = (pc & 0xf0000000) | ((instruction & 0x03ffffff) << 2);
-	return instruction;
-}
-
-int get_base(int instruction)
-{
-	return get_rs(instruction);
-}
-
-int get_rs(int instruction)
-{
-	return (instruction & 0x03e00000) >> 21;
-}
-
-int get_rt(int instruction)
-{
-	return (instruction & 0x001f0000) >> 16;
-}
-
-int get_rd(int instruction)
-{
-	return (instruction & 0x0000f800) >> 11;
-}
-
-int get_sa(int instruction)
-{
-	return (instruction & 0x000007c0) >> 6;
-}
-
-short get_immediate16(int instruction)
-{
-	return (instruction & 0x0000ffff);
-}
-
-short get_offset(int instruction)
-{
-	return (instruction & 0x0000ffff);
-}
-
-int load_word(unsigned int vaddr, char *ram, char *flash)
-{
-	int word = 0;
-
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (int)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(int *)(flash+vaddr-FLASH_START);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		word = *(int *)(ram+vaddr-RAM_START);
-	word = ntohl(word);
-	return word;
-}
-
-void store_word(unsigned int vaddr, int val, char *ram, char *flash)
-{
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
-
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(int *)(ram+vaddr-RAM_START) = htonl(val);
-
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
-}
-
-unsigned short load_halfword(unsigned int vaddr, char *ram, char *flash)
-{
-	short word = 0;
-
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (short)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(short *)(flash+vaddr-FLASH_START);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		word = *(short *)(ram+vaddr-RAM_START);
-	word = ntohs(word);
-	return word;
-}
-
-void store_halfword(unsigned int vaddr, short val, char *ram, char *flash)
-{
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(short *)(ram+vaddr-RAM_START) = htons(val);
-
-	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
-		fakeflash_write(vaddr, val);
-
-	
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
-}
-
-unsigned char load_byte(unsigned int vaddr, char *ram, char *flash)
-{
-	char byte = 0;
-
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (char)get_reg_val(vaddr);
-	else
-		vaddr = vaddr & ~0x20000000;
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		byte = *(char *)(flash+vaddr-FLASH_START);
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		byte = *(char *)(ram+vaddr-RAM_START);
-
-	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
-		byte = fakeflash_read(vaddr);
-
-	return byte;
-}
-
-void store_byte(unsigned int vaddr, char val, char *ram, char *flash)
-{
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		goto error;
-	else
-		vaddr = vaddr & ~0x20000000;
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		goto error;
-	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(char *)(ram+vaddr-RAM_START) = val;
-	
-	return;
-error:
-	(void)0;
-/* 	printf("can't write to 0x%x\n", vaddr); */
-}
-
-static int fakeflash_state = 0;
-
-char fakeflash_read(unsigned int vaddr)
-{
-  char rv = '\0';
-
-  if(fakeflash_state == 1)
-    switch(vaddr)
-      {
-      case 0x9f000001:
-	rv = 'P';
-	break;
-      case 0x9f000003:
-	rv = 'R';
-	break;
-      case 0x9f000005:
-	rv = 'I';
-	break;
-      case 0x9f000021:
-	rv = 'Q';
-	break;
-      case 0x9f000023:
-	rv = 'R';
-	break;
-      case 0x9f000025:
-	rv = 'Y';
-	break;
-    default:
-	rv = '\0';
-	break;
-      }
-
-/*   printf("fake flash read @ 0x%x (0x%x)\n", vaddr, rv); */
-  return rv;
-}
-
-void fakeflash_write(unsigned int vaddr, short val)
-{
-
-  if(vaddr == 0x9f0000aa && val == 0x98)
-    fakeflash_state = 1;
-  if(vaddr == 0x9f0000aa && val == 0xff)
-    fakeflash_state = 0;
-/*   printf("fake flash write 0x%x @ 0x%x\n", val, vaddr); */
-}
-
-int get_reg_val(unsigned int vaddr)
-{
-  
-
-	if(vaddr == 0xfffe0000)
-		return 0x33483348;
-	else if(vaddr == 0xfffe0003)
-		return 0xa0;
-	else if(vaddr == 0xFFFE2000)
-		return 0x1F00000B;
-	else if(vaddr == 0xFFFE2008)
-		return 0x1A000008;
-	else if(vaddr == 0xFFFE2010)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE2018)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE2020)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE2028)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE2004)
-		return 0x00000019;
-	else if(vaddr == 0xFFFE200C)
-		return 0x00000019;
-	else if(vaddr == 0xFFFE2014)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE201C)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE2024)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE202C)
-		return 0x00000000;
-	else if(vaddr == 0xFFFE0203)
-	  {
-	    if(timer_int == 1) {
-	      timer_int = 0;
-	      return 0xff;
-	    }
-	    else  
-	      return 0x0;
-	  }
-	else if(vaddr == 0xFFFE0312)
-	  return 0xffffffff;
-	else
-	printf("Registry access b(0x%x)\n", vaddr);
-
-	return 0;
-}
-
-char *r2rn(int reg)
-{
-	switch (reg)
+	for(i = 0; i < 32; i++)
 	{
-	case 0:
-		return "$0";
-	case 1:
-		return "$at";
-	case 2:
-		return "$v0";
-	case 3:
-		return "$v1";
-	case 4:
-		return "$a0";
-	case 5:
-		return "$a1";
-	case 6:
-		return "$a2";
-	case 7:
-		return "$a3";
-	case 8:
-		return "$t0";
-	case 9:
-		return "$t1";
-	case 10:
-		return "$t2";
-	case 11:
-		return "$t3";
-	case 12:
-		return "$t4";
-	case 13:
-		return "$t5";
-	case 14:
-		return "$t6";
-	case 15:
-		return "$t7";
-	case 16:
-		return "$s0";
-	case 17:
-		return "$s1";
-	case 18:
-		return "$s2";
-	case 19:
-		return "$s3";
-	case 20:
-		return "$s4";
-	case 21:
-		return "$s5";
-	case 22:
-		return "$s6";
-	case 23:
-		return "$s7";
-	case 24:
-		return "$t8";
-	case 25:
-		return "$t9";
-	case 26:
-		return "$k0";
-	case 27:
-		return "$k1";
-	case 28:
-		return "$gp";
-	case 29:
-		return "$sp";
-	case 30:
-		return "$s8";
-	case 31:
-		return "$ra";
-
+		cpu->reg[i] = 0;
 	}
-	return "";
-}
-#if 0
-void dump_regs(struct cpu_state *cpu)
-{
-  dtrace("$0:  0x%08x $at: 0x%08x $v0: 0x%08x $v1: 0x%08x $a0: 0x%08x $a1: 0x%08x $a2: 0x%08x $a3: 0x%08x\n", cpu->reg[0], cpu->reg[1], cpu->reg[2], cpu->reg[3], cpu->reg[4], cpu->reg[5], cpu->reg[6], cpu->reg[7]);
-  dtrace("$t0: 0x%08x $t1: 0x%08x $t2: 0x%08x $t3: 0x%08x $t4: 0x%08x $t5: 0x%08x $t6: 0x%08x $t7: 0x%08x\n", cpu->reg[8], cpu->reg[9], cpu->reg[10], cpu->reg[11], cpu->reg[12], cpu->reg[13], cpu->reg[14], cpu->reg[15]);
-  dtrace("$s0: 0x%08x $s1: 0x%08x $s2: 0x%08x $s3: 0x%08x $s4: 0x%08x $s5: 0x%08x $s6: 0x%08x $s7: 0x%08x\n", cpu->reg[16], cpu->reg[17], cpu->reg[18], cpu->reg[19], cpu->reg[20], cpu->reg[21], cpu->reg[22], cpu->reg[23]);
-  dtrace("$t8: 0x%08x $t9: 0x%08x $k0: 0x%08x $k1: 0x%08x $gp: 0x%08x $sp: 0x%08x $s8: 0x%08x $ra: 0x%08x\n", cpu->reg[24], cpu->reg[25], cpu->reg[26], cpu->reg[27], cpu->reg[28], cpu->reg[29], cpu->reg[30], cpu->reg[31]);
-}
-
-int *get_address(unsigned int vaddr, char *ram, char *flash)
-{
-	if(vaddr >= REG_START && vaddr <= REG_END)
-		return 0;
-	else
-		vaddr = vaddr & ~0x20000000;
-
-	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		return (int *)(flash+vaddr-FLASH_START);
 	
-	if(vaddr >= RAM_START && vaddr < RAM_END)
-		return (int *)(ram+vaddr-RAM_START);
+	cpu->pc = start_address;
+	cpu->delayed_jump = 0;
+	cpu->jump_pc = 0;
+	cpu->HI = 0;
+	cpu->LO = 0;
+}
+
+int main(void)
+{
+	int fd;
+	char *flash;
+	char *ram;
+	struct cpu_state cpu;
+
+	flash = malloc(FLASH_SIZE);
+	ram = malloc(RAM_SIZE);
+	bzero((void *)flash, FLASH_SIZE);
+	bzero((void *)ram, RAM_SIZE);
+
+	fd = open("fw.bin", O_RDONLY);
+
+	read(fd, (void *)flash, FLASH_SIZE);
+
+	initialize_cpu(&cpu, FLASH_START);
+
+	while(1)
+		execute(&cpu, flash, ram);
+
 	return 0;
 }
-#endif
