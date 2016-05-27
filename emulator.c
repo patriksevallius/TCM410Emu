@@ -1791,10 +1791,10 @@ void execute(struct cpu_state *cpu)
 				cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
 				break;
 			case INS_SLTI:  /* 001010 */
-				cpu->reg[rt] = cpu->reg[rs] < (uint32_t)(int32_t)im16;
+				cpu->reg[rt] = cpu->reg[rs] < (int32_t)im16;
 				break;
 			case INS_SLTIU: /* 001011 */
-				cpu->reg[rt] = (uint32_t)cpu->reg[rs] < (int32_t)(uint16_t)im16;
+				cpu->reg[rt] = (uint32_t)cpu->reg[rs] < (uint32_t)(int32_t)im16;
 				break;
 			case INS_ANDI:  /* 001100 */
 				cpu->reg[rt] = cpu->reg[rs] & (int32_t)(uint16_t)im16;
@@ -1919,11 +1919,11 @@ void execute(struct cpu_state *cpu)
 				break;
 			case INS_LB:    /* 100000 */
 				vaddr = cpu->reg[base]+offset;
-				cpu->reg[rt] = load_byte(vaddr, cpu->ram, cpu->flash);
+				cpu->reg[rt] = (int32_t)(int8_t)load_byte(vaddr, cpu->ram, cpu->flash);
 				break;
 			case INS_LH:    /* 100001 */
 				vaddr = cpu->reg[base]+offset;
-				cpu->reg[rt] = load_short(vaddr, cpu->ram, cpu->flash);
+				cpu->reg[rt] = (int32_t)(int16_t)load_short(vaddr, cpu->ram, cpu->flash);
 				break;
 			case INS_LWL:   /* 100010 */
 			{
