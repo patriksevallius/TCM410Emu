@@ -1078,18 +1078,22 @@ void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t s
 void print_string(struct cpu_state *cpu)
 {
 	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
+	fflush( stdout );
 }
 
 void printf_string(struct cpu_state *cpu)
 {
 	printf("printf@0x%08x: ", cpu->prev_pc[2] );
 	printf((char *)get_address(cpu->reg[4], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[6], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[7], cpu->ram, cpu->flash));
+	fflush( stdout );
 }
 
 void print_char(struct cpu_state *cpu)
 {
 	printf("%c", cpu->reg[4]);
+	fflush( stdout );
 }
+
 void enable_debug(struct cpu_state *cpu)
 {
 	debug = 1;
