@@ -56,7 +56,7 @@ struct cpu_state
 	int32_t cop0[32][10];
 } cpu;
 
-static int32_t debug = 0;
+static bool debug = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
 static int32_t flash_auto_select = 0;
