@@ -658,7 +658,7 @@ void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 	printf("can't write 0x%08x to 0x%x\n", val, vaddr);
 }
 
-uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
+uint16_t load_short(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
 	int16_t word = 0;
 
@@ -676,7 +676,7 @@ uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
 	return word;
 }
 
-void store_halfword(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
+void store_short(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return reg_write_short(vaddr, val);
@@ -2001,7 +2001,7 @@ void execute(struct cpu_state *cpu)
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
-				cpu->reg[rt] = load_halfword(vaddr, cpu->ram, cpu->flash);
+				cpu->reg[rt] = load_short(vaddr, cpu->ram, cpu->flash);
 				/* dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
@@ -2049,7 +2049,7 @@ void execute(struct cpu_state *cpu)
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
-				cpu->reg[rt] = load_halfword(vaddr, cpu->ram, cpu->flash);
+				cpu->reg[rt] = load_short(vaddr, cpu->ram, cpu->flash);
 				/* dtrace("\tlhu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
@@ -2093,7 +2093,7 @@ void execute(struct cpu_state *cpu)
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
-				store_halfword(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
+				store_short(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
 				/* dtrace("\tsh\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
