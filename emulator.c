@@ -1568,7 +1568,7 @@ void execute(struct cpu_state *cpu)
 			opcode = decode_special_opcode(instruction);
 			switch(opcode)
 			{
-			case INS_SLL:   /* 01000000 */
+			case INS_SLL:   /* 000000 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] << sa;
 				/* if(sa == 0) */
 				/* 	dtrace("\tnop\n"); */
@@ -1576,138 +1576,138 @@ void execute(struct cpu_state *cpu)
 				/* 	dtrace("\tsll\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 		   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_MOVF:   /* 01000001 */
+			case INS_MOVF:   /* 000001 */
 				printf("\tmovf not implemented\n");
 				exit(1);
 				break;
-			case INS_SRL:   /* 01000010 */
+			case INS_SRL:   /* 000010 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> sa;
 				/* dtrace("\tsrl\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SRA:   /* 01000011 */
+			case INS_SRA:   /* 000011 */
 				cpu->reg[rd] = cpu->reg[rt] >> sa;
 				/* dtrace("\tsllv\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SLLV:  /* 01000100 */
+			case INS_SLLV:  /* 000100 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
 				/* dtrace("\tsllv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SRLV:  /* 01000110 */
+			case INS_SRLV:  /* 000110 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 				/* dtrace("\tsrlv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SRAV:  /* 01000111 */
+			case INS_SRAV:  /* 000111 */
 				cpu->reg[rd] = (int32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 				/* dtrace("\tsrav\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_JR:    /* 01001000 */
+			case INS_JR:    /* 001000 */
 				cpu->jump_pc = cpu->reg[rs] & ~0x20000000;
 				cpu->delayed_jump = 1;
 				/* dtrace("\tjr\t%s\033[100D\33[65C(0x%x)\n", */
 				/* 	   r2rn(rs), cpu->jump_pc); */
 				break;
-			case INS_JALR:  /* 01001001 */
+			case INS_JALR:  /* 001001 */
 				cpu->jump_pc = cpu->reg[rs] & ~0x20000000;
 				cpu->reg[rd] = cpu->pc+4;
 				cpu->delayed_jump = 1;
 				/* dtrace("\tjr\t%s, %s\033[100D\33[65C(0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rd), cpu->jump_pc); */
 				break;
-			case INS_MFHI:  /* 01010000 */
+			case INS_MFHI:  /* 010000 */
 				cpu->reg[rd] = cpu->HI;
 				/* dtrace("\tmfhi\t%s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_MTHI:  /* 01010001 */
+			case INS_MTHI:  /* 010001 */
 				cpu->HI = cpu->reg[rs];
 				/* dtrace("\tmthi\t%s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rs), "HI", cpu->HI); */
 				break;
-			case INS_MFLO:  /* 01010010 */
+			case INS_MFLO:  /* 010010 */
 				cpu->reg[rd] = cpu->LO;
 				/* dtrace("\tmflo\t%s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_MTLO:  /* 01010011 */
+			case INS_MTLO:  /* 010011 */
 				cpu->LO = cpu->reg[rs];
 				/* dtrace("\tmtlo\t%s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rs), "LO", cpu->LO); */
 				break;
-			case INS_MULT:  /* 01011000 */
+			case INS_MULT:  /* 011000 */
 				cpu->HI = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) >> 32;
 				cpu->LO = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) & 0xffffffff;
 				/* dtrace("\tmult\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
-			case INS_MULTU: /* 01011001 */
+			case INS_MULTU: /* 011001 */
 				cpu->HI = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) >> 32;
 				cpu->LO = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) & 0xffffffff;
 				/* dtrace("\tmultu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
-			case INS_DIV:   /* 01011010 */
+			case INS_DIV:   /* 011010 */
 				cpu->LO = cpu->reg[rs] / cpu->reg[rt];
 				cpu->HI = cpu->reg[rs] % cpu->reg[rt];
 				/* dtrace("\tdiv\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
-			case INS_DIVU:  /* 01011011 */
+			case INS_DIVU:  /* 011011 */
 				cpu->LO = (uint32_t)cpu->reg[rs] / (uint32_t)cpu->reg[rt];
 				cpu->HI = (uint32_t)cpu->reg[rs] % (uint32_t)cpu->reg[rt];
 				/* dtrace("\tdivu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n", */
 				/* 	   r2rn(rs), r2rn(rt), cpu->HI, cpu->LO); */
 				break;
-			case INS_ADDU:  /* 01100001 */
+			case INS_ADDU:  /* 100001 */
 				cpu->reg[rd] = cpu->reg[rs] + cpu->reg[rt];
 				/* dtrace("\taddu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_ADD:   /* 01100000 */
+			case INS_ADD:   /* 100000 */
 				cpu->reg[rd] = cpu->reg[rs] + cpu->reg[rt];
 				/* dtrace("\tadd\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SUB:   /* 01100010 */
+			case INS_SUB:   /* 100010 */
 				cpu->reg[rd] = cpu->reg[rs] - cpu->reg[rt];
 				/* dtrace("\tsub\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SUBU:  /* 01100011 */
+			case INS_SUBU:  /* 100011 */
 				cpu->reg[rd] = cpu->reg[rs] - cpu->reg[rt];
 				/* dtrace("\tsubu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_AND:   /* 01100100 */
+			case INS_AND:   /* 100100 */
 				cpu->reg[rd] = cpu->reg[rs] & cpu->reg[rt];
 				/* dtrace("\tand\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_OR:    /* 01100101 */
+			case INS_OR:    /* 100101 */
 				cpu->reg[rd] = cpu->reg[rs] | cpu->reg[rt];
 				/* dtrace("\tor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_XOR:   /* 01100110 */
+			case INS_XOR:   /* 100110 */
 				cpu->reg[rd] = cpu->reg[rs] ^ cpu->reg[rt];
 				/* dtrace("\tor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_NOR:   /* 01100111 */
+			case INS_NOR:   /* 100111 */
 				cpu->reg[rd] = ~(cpu->reg[rs] | cpu->reg[rt]);
 				/* dtrace("\tnor\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SLT:   /* 01101010 */
+			case INS_SLT:   /* 101010 */
 				cpu->reg[rd] = cpu->reg[rs] < cpu->reg[rt];
 				/* dtrace("\tslt\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
 				break;
-			case INS_SLTU:  /* 01101011 */
+			case INS_SLTU:  /* 101011 */
 				cpu->reg[rd] = (uint32_t)cpu->reg[rs] < (uint32_t)cpu->reg[rt];
 				/* dtrace("\tsltu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]); */
@@ -1780,18 +1780,18 @@ void execute(struct cpu_state *cpu)
 			opcode = decode_special_branch_opcode(instruction);
 			switch(opcode)
 			{
-			case INS_J:     /* 00000010 */
+			case INS_J:     /* 000010 */
 				cpu->jump_pc = get_jump_address(instruction, cpu->pc);
 				cpu->delayed_jump = 1;
 				/* dtrace("\tj\t0x%x\n", cpu->jump_pc); */
 				break;
-			case INS_JAL:   /* 00000011 */
+			case INS_JAL:   /* 000011 */
 				cpu->jump_pc = get_jump_address(instruction, cpu->pc);
 				cpu->reg[31] = cpu->pc+4;
 				cpu->delayed_jump = 1;
 				/* dtrace("\tjal\t0x%x\n", cpu->jump_pc); */
 				break;
-			case INS_BEQ:   /* 00000100 */
+			case INS_BEQ:   /* 000100 */
 				if(cpu->reg[rt] == cpu->reg[rs])
 				{
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
@@ -1800,7 +1800,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tbeq\t%s, %s, 0x%x\033[100D\33[65C(0x%x == 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
-			case INS_BNE:   /* 00000101 */
+			case INS_BNE:   /* 000101 */
 				if(cpu->reg[rt] != cpu->reg[rs])
 				{
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
@@ -1809,7 +1809,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tbne\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
-			case INS_BLEZ:  /* 00000110 */
+			case INS_BLEZ:  /* 000110 */
 				if(cpu->reg[rs] <= 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1818,7 +1818,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tblez\t%s, 0x%x\033[100D\33[65C(0x%x <= 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
-			case INS_BGTZ:  /* 00000111 */
+			case INS_BGTZ:  /* 000111 */
 				if(cpu->reg[rs] > 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1827,47 +1827,47 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tbgtz\t%s, 0x%x\033[100D\33[65C(0x%x > 0)\n", */
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
-			case INS_ADDI:  /* 00001000 */
+			case INS_ADDI:  /* 001000 */
 				cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
 				/* dtrace("\taddi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_ADDIU: /* 00001001 */
+			case INS_ADDIU: /* 001001 */
 				cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
 				/* dtrace("\taddiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_SLTI:  /* 00001010 */
+			case INS_SLTI:  /* 001010 */
 				cpu->reg[rt] = cpu->reg[rs] < (uint32_t)(int32_t)im16;
 				/* dtrace("\tslti\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_SLTIU: /* 00001011 */
+			case INS_SLTIU: /* 001011 */
 				cpu->reg[rt] = (uint32_t)cpu->reg[rs] < (int32_t)(uint16_t)im16;
 				/* dtrace("\tsltiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_ANDI:  /* 00001100 */
+			case INS_ANDI:  /* 001100 */
 				cpu->reg[rt] = cpu->reg[rs] & (int32_t)(uint16_t)im16;
 				/* dtrace("\tandi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_ORI:   /* 00001101 */
+			case INS_ORI:   /* 001101 */
 				cpu->reg[rt] = cpu->reg[rs] | (int32_t)(uint16_t)im16;
 				/* dtrace("\tori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_XORI:  /* 00001110 */
+			case INS_XORI:  /* 001110 */
 				cpu->reg[rt] = cpu->reg[rs] ^ (int32_t)(uint16_t)im16;
 				/* dtrace("\txori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_LUI:   /* 00001111 */
+			case INS_LUI:   /* 001111 */
 				cpu->reg[rt] = im16 << 16;
 				/* dtrace("\tlui\t%s, 0x%x\033[100D\33[65C(%s = 0x%x)\n", */
 				/* 	   r2rn(rt), im16<<16, r2rn(rt), cpu->reg[rt]); */
 				break;
-			case INS_COP0:  /* 00010000 */
+			case INS_COP0:  /* 010000 */
 				/* don't handle at the moment */
 				/* if(!debug) */
 				/* 	debug = 1; */
@@ -1900,19 +1900,19 @@ void execute(struct cpu_state *cpu)
 				}
 				/* debug = 0; */
 				break;
-			case INS_COP1:  /* 00010001 */
+			case INS_COP1:  /* 010001 */
 				printf("\tcop1 not implemented\n");
 				exit(1);
 				break;
-			case INS_COP2:  /* 00010010 */
+			case INS_COP2:  /* 010010 */
 				printf("\tcop2 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA1:   /* 00010011 */
+			case INS_NA1:   /* 010011 */
 				printf("\tundefined instruction na1 not implemented\n");
 				exit(1);
 				break;
-			case INS_BEQL:  /* 00010100 */
+			case INS_BEQL:  /* 010100 */
 				if(cpu->reg[rt] == cpu->reg[rs])
 				{
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
@@ -1923,7 +1923,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tbeql\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
-			case INS_BNEL:   /* 00010101 */
+			case INS_BNEL:   /* 010101 */
 				if(cpu->reg[rt] != cpu->reg[rs])
 				{
 					cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
@@ -1934,7 +1934,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tbnel\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n", */
 				/* 	   r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]); */
 				break;
-			case INS_BLEZL: /* 00010110 */
+			case INS_BLEZL: /* 010110 */
 				if(cpu->reg[rs] <= 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1946,7 +1946,7 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 				break;
-			case INS_BGTZL: /* 00010111 */
+			case INS_BGTZL: /* 010111 */
 				if(cpu->reg[rs] > 0)
 				{
 					cpu->jump_pc = cpu->pc + (offset << 2);
@@ -1958,45 +1958,45 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]); */
 				break;
 				break;
-			case INS_NA2:   /* 00011000 */
+			case INS_NA2:   /* 011000 */
 				printf("\tundefined instruction na2 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA3:   /* 00011001 */
+			case INS_NA3:   /* 011001 */
 				printf("\tundefined instruction na3 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA4:   /* 00011010 */
+			case INS_NA4:   /* 011010 */
 				printf("\tundefined instruction na4 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA5:   /* 00011011 */
+			case INS_NA5:   /* 011011 */
 				printf("\tundefined instruction na5 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA6:   /* 00011100 */
+			case INS_NA6:   /* 011100 */
 				printf("\tundefined instruction na6 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA7:   /* 00011101 */
+			case INS_NA7:   /* 011101 */
 				printf("\tundefined instruction na7 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA8:   /* 00011110 */
+			case INS_NA8:   /* 011110 */
 				printf("\tundefined instruction na8 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA9:   /* 00011111 */
+			case INS_NA9:   /* 011111 */
 				printf("\tundefined instruction na9 not implemented\n");
 				exit(1);
 				break;
-			case INS_LB:    /* 00100000 */
+			case INS_LB:    /* 100000 */
 				vaddr = cpu->reg[base]+offset;
 				cpu->reg[rt] = load_byte(vaddr, cpu->ram, cpu->flash);
 				/* dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
-			case INS_LH:    /* 00100001 */
+			case INS_LH:    /* 100001 */
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
@@ -2004,7 +2004,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tlh\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
-			case INS_LWL:   /* 00100010 */
+			case INS_LWL:   /* 100010 */
 			{
 				int8_t byte;
 				uint32_t word;
@@ -2030,7 +2030,7 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			}
-			case INS_LW:    /* 00100011 */
+			case INS_LW:    /* 100011 */
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x3) */
 				/* 	dtrace("Exception address error\n"); */
@@ -2038,13 +2038,13 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tlw\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
-			case INS_LBU:   /* 00100100 */
+			case INS_LBU:   /* 100100 */
 				vaddr = cpu->reg[base]+offset;
 				cpu->reg[rt] = (int32_t)load_byte(vaddr, cpu->ram, cpu->flash);
 				/* dtrace("\tlbu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
-			case INS_LHU:   /* 00100101 */
+			case INS_LHU:   /* 100101 */
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
@@ -2052,7 +2052,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tlhu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
-			case INS_LWR:   /* 00100110 */
+			case INS_LWR:   /* 100110 */
 			{
 				int8_t byte;
 				uint32_t word;
@@ -2078,17 +2078,17 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr); */
 				break;
 			}
-			case INS_NA10:   /* 00100111 */
+			case INS_NA10:   /* 100111 */
 				printf("\tundefined instruction na10 not implemented\n");
 				exit(1);
 				break;
-			case INS_SB:    /* 00101000 */
+			case INS_SB:    /* 101000 */
 				vaddr = cpu->reg[base]+offset;
 				store_byte(vaddr, cpu->reg[rt], cpu->ram, cpu->flash);
 				/* dtrace("\tsb\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
-			case INS_SH:    /* 00101001 */
+			case INS_SH:    /* 101001 */
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x1) */
 				/* 	dtrace("Exception address error\n"); */
@@ -2096,7 +2096,7 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tsh\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
-			case INS_SWL:   /* 00101010 */
+			case INS_SWL:   /* 101010 */
 			{
 				int8_t byte;
 				uint32_t word;
@@ -2123,7 +2123,7 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			}
-			case INS_SW:    /* 00101011 */
+			case INS_SW:    /* 101011 */
 				vaddr = cpu->reg[base]+offset;
 				/* if(vaddr & 0x3) */
 				/* 	dtrace("Exception address error\n"); */
@@ -2131,15 +2131,15 @@ void execute(struct cpu_state *cpu)
 				/* dtrace("\tsw\t%s, 0x%x(%s)\033[100D\33[65C(0x%x) @ 0x%x\n", */
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
-			case INS_NA11:   /* 00101100 */
+			case INS_NA11:   /* 101100 */
 				printf("\tundefined instruction na11 not implemented\n");
 				exit(1);
 				break;
-			case INS_NA12:   /* 00101101 */
+			case INS_NA12:   /* 101101 */
 				printf("\tundefined instruction na12 not implemented\n");
 				exit(1);
 				break;
-			case INS_SWR:   /* 00101110 */
+			case INS_SWR:   /* 101110 */
 			{
 				int8_t byte;
 				uint32_t word;
@@ -2166,7 +2166,7 @@ void execute(struct cpu_state *cpu)
 				/* 	   r2rn(rt), offset, r2rn(base), cpu->reg[rt], vaddr); */
 				break;
 			}
-			case INS_CACHE: /* 00101111 */
+			case INS_CACHE: /* 101111 */
 				/* don't handle at the moment */
 				/* dtrace("\tcache\n"); */
 				break;
