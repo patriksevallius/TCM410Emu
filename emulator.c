@@ -23,14 +23,7 @@
 #define REG_START   0xfffe0000
 #define REG_END     0xffffffff
 
-#define DEBUG 0
-
-static int debug = 0;
-#if (DEBUG == 0)
-#define dtrace(...) do { (void)0; } while(0)
-#else
-#define dtrace(...) do { if( debug == 1 ) printf( __VA_ARGS__); } while(0)
-#endif
+#define dtrace(...) do { if( debug == 1 ) fprintf(stderr, __VA_ARGS__); } while(0)
 
 struct cpu_state
 {
@@ -42,6 +35,7 @@ struct cpu_state
 	int jump_pc;
 };
 
+static int debug = 0;
 static int timer_int = 0;
 static int fakeflash_state = 0;
 
@@ -434,8 +428,8 @@ void execute(struct cpu_state *cpu, char *flash, char *ram)
 
 	if(cpu->pc == 0x80260A5C)
 	  {
-	    fprintf(stderr, "0x%x", cpu->reg[2]);
-	    fprintf(stderr, "%s", ram+(cpu->reg[5]-RAM_START));
+	    printf("0x%x", cpu->reg[2]);
+	    printf("%s", ram+(cpu->reg[5]-RAM_START));
 	  }
 
 	if(cpu->pc == 0x80010000)
@@ -476,12 +470,12 @@ void execute(struct cpu_state *cpu, char *flash, char *ram)
 	if(next_printf)
 	  {
 	    if(cpu->pc == 0x81f837b0)
-	      fprintf(stderr, "%c", cpu->reg[4]);
+	      printf("%c", cpu->reg[4]);
 	  }
 	else
 	  {
 	    if(cpu->pc == 0x81f800a8)
-	      fprintf(stderr, "%c", cpu->reg[4]);
+	      printf("%c", cpu->reg[4]);
 	  }
 
 	switch(opcode)
