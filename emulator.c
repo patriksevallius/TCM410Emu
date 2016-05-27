@@ -967,18 +967,12 @@ void execute(struct cpu_state *cpu)
 		cpu->prev_pc[0] = cpu->prev_pc[1];
 		cpu->prev_pc[1] = cpu->prev_pc[2];
 		cpu->prev_pc[2] = cpu->pc;
-		opcode = decode_opcode(instruction);
-		if(opcode == 0)
-			opcode = decode_special_opcode(instruction);
-		else if(opcode == 1)
-			opcode = decode_special_branch_opcode(instruction);
-
 		if(cpu->delayed_jump)
-	    {
+		{
 			cpu->pc = cpu->jump_pc;
 			cpu->delayed_jump = 0;
 			cpu->jump_pc = 0;
-	    }
+		}
 		else
 			cpu->pc += 4;
 
@@ -990,6 +984,11 @@ void execute(struct cpu_state *cpu)
 		rt = get_rt(instruction);
 		sa = get_sa(instruction);
 		vaddr = cpu->reg[base]+offset;
+		opcode = decode_opcode(instruction);
+		if(opcode == 0)
+			opcode = decode_special_opcode(instruction);
+		else if(opcode == 1)
+			opcode = decode_special_branch_opcode(instruction);
 
 		switch(opcode)
 	    {
