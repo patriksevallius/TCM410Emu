@@ -6,6 +6,7 @@
 #include <strings.h>
 #include <arpa/inet.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #include "opcode.h"
 
@@ -30,30 +31,30 @@ struct cpu_state;
 struct callback
 {
 	struct callback* next;
-	unsigned int address;
+	uint32_t address;
 	void(*callback)(struct cpu_state *);
 };
 
 struct cpu_state
 {
-	int reg[32];
-	int HI;
-	int LO;
-	int pc;
-	int delayed_jump;
-	int jump_pc;
+	int32_t reg[32];
+	int32_t HI;
+	int32_t LO;
+	int32_t pc;
+	int32_t delayed_jump;
+	int32_t jump_pc;
   	struct callback *callbacks;
-	char *ram;
-	char *flash;
+	int8_t *ram;
+	int8_t *flash;
 };
 
-static int debug = 0;
-static int timer_int = 0;
-static int fakeflash_state = 0;
+static int32_t debug = 0;
+static int32_t timer_int = 0;
+static int32_t fakeflash_state = 0;
 
-char fakeflash_read(unsigned int vaddr)
+int8_t fakeflash_read(uint32_t vaddr)
 {
-  char rv = '\0';
+  int8_t rv = '\0';
 
   if(fakeflash_state == 1)
     switch(vaddr)
@@ -85,7 +86,7 @@ char fakeflash_read(unsigned int vaddr)
   return rv;
 }
 
-void fakeflash_write(unsigned int vaddr, short val)
+void fakeflash_write(uint32_t vaddr, int16_t val)
 {
 
   if(vaddr == 0x9f0000aa && val == 0x98)
@@ -95,7 +96,7 @@ void fakeflash_write(unsigned int vaddr, short val)
 /*   printf("fake flash write 0x%x @ 0x%x\n", val, vaddr); */
 }
 
-int get_reg_val(unsigned int vaddr)
+int32_t get_reg_val(uint32_t vaddr)
 {
 	if(vaddr == 0xfffe0000)
 		return 0x33483348;
@@ -142,91 +143,91 @@ int get_reg_val(unsigned int vaddr)
 	return 0;
 }
 
-int get_instruction(unsigned int address, char *ram, char *flash)
+int32_t get_instruction(uint32_t address, int8_t *ram, int8_t *flash)
 {
-	int instruction = 0x0;
+	int32_t instruction = 0x0;
 	if(address >= FLASH_START && address < FLASH_END)
-		instruction = *(int *)(flash+address-FLASH_START);
+		instruction = *(int32_t *)(flash+address-FLASH_START);
 	else if(address >= RAM_START && address < RAM_END)
-		instruction = *(int *)(ram+address-RAM_START);
+		instruction = *(int32_t *)(ram+address-RAM_START);
 	instruction = ntohl(instruction);
 	return instruction;
 }
 
-unsigned int decode_opcode(unsigned int instruction)
+uint32_t decode_opcode(uint32_t instruction)
 {
 	return instruction >> 26;
 }
 
-unsigned int decode_special_opcode(unsigned int instruction)
+uint32_t decode_special_opcode(uint32_t instruction)
 {
 	return (instruction & 0x3f) | 0x40;
 }
 
-unsigned int decode_special_branch_opcode(unsigned int instruction)
+uint32_t decode_special_branch_opcode(uint32_t instruction)
 {
 	return (instruction & 0x1f0000) >>16 | 0x80;
 }
 
-int get_jump_address(int instruction, int pc)
+int32_t get_jump_address(int32_t instruction, int32_t pc)
 {
 	instruction = (pc & 0xf0000000) | ((instruction & 0x03ffffff) << 2);
 	return instruction;
 }
 
-int get_rs(int instruction)
+int32_t get_rs(int32_t instruction)
 {
 	return (instruction & 0x03e00000) >> 21;
 }
 
-int get_rt(int instruction)
+int32_t get_rt(int32_t instruction)
 {
 	return (instruction & 0x001f0000) >> 16;
 }
 
-int get_rd(int instruction)
+int32_t get_rd(int32_t instruction)
 {
 	return (instruction & 0x0000f800) >> 11;
 }
 
-int get_sa(int instruction)
+int32_t get_sa(int32_t instruction)
 {
 	return (instruction & 0x000007c0) >> 6;
 }
 
-short get_immediate16(int instruction)
+int16_t get_immediate16(int32_t instruction)
 {
 	return (instruction & 0x0000ffff);
 }
 
-short get_offset(int instruction)
+int16_t get_offset(int32_t instruction)
 {
 	return (instruction & 0x0000ffff);
 }
 
-int get_base(int instruction)
+int32_t get_base(int32_t instruction)
 {
 	return get_rs(instruction);
 }
 
-int load_word(unsigned int vaddr, char *ram, char *flash)
+int32_t load_word(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
-	int word = 0;
+	int32_t word = 0;
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (int)get_reg_val(vaddr);
+		return (int32_t)get_reg_val(vaddr);
 	else
 		vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(int *)(flash+vaddr-FLASH_START);
+		word = *(int32_t *)(flash+vaddr-FLASH_START);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		word = *(int *)(ram+vaddr-RAM_START);
+		word = *(int32_t *)(ram+vaddr-RAM_START);
 	word = ntohl(word);
 	return word;
 }
 
-void store_word(unsigned int vaddr, int val, char *ram, char *flash)
+void store_word(uint32_t vaddr, int32_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		goto error;
@@ -237,7 +238,7 @@ void store_word(unsigned int vaddr, int val, char *ram, char *flash)
 		goto error;
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(int *)(ram+vaddr-RAM_START) = htonl(val);
+		*(int32_t *)(ram+vaddr-RAM_START) = htonl(val);
 
 	return;
 error:
@@ -245,24 +246,24 @@ error:
 /* 	printf("can't write to 0x%x\n", vaddr); */
 }
 
-unsigned short load_halfword(unsigned int vaddr, char *ram, char *flash)
+uint16_t load_halfword(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
-	short word = 0;
+	int16_t word = 0;
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (short)get_reg_val(vaddr);
+		return (int16_t)get_reg_val(vaddr);
 	else
 		vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		word = *(short *)(flash+vaddr-FLASH_START);
+		word = *(int16_t *)(flash+vaddr-FLASH_START);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		word = *(short *)(ram+vaddr-RAM_START);
+		word = *(int16_t *)(ram+vaddr-RAM_START);
 	word = ntohs(word);
 	return word;
 }
 
-void store_halfword(unsigned int vaddr, short val, char *ram, char *flash)
+void store_halfword(uint32_t vaddr, int16_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		goto error;
@@ -272,7 +273,7 @@ void store_halfword(unsigned int vaddr, short val, char *ram, char *flash)
 		goto error;
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(short *)(ram+vaddr-RAM_START) = htons(val);
+		*(int16_t *)(ram+vaddr-RAM_START) = htons(val);
 
 	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
 		fakeflash_write(vaddr, val);
@@ -284,19 +285,19 @@ error:
 /* 	printf("can't write to 0x%x\n", vaddr); */
 }
 
-unsigned char load_byte(unsigned int vaddr, char *ram, char *flash)
+uint8_t load_byte(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
-	char byte = 0;
+	int8_t byte = 0;
 
 	if(vaddr >= REG_START && vaddr <= REG_END)
-		return (char)get_reg_val(vaddr);
+		return (int8_t)get_reg_val(vaddr);
 	else
 		vaddr = vaddr & ~0x20000000;
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		byte = *(char *)(flash+vaddr-FLASH_START);
+		byte = *(int8_t *)(flash+vaddr-FLASH_START);
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		byte = *(char *)(ram+vaddr-RAM_START);
+		byte = *(int8_t *)(ram+vaddr-RAM_START);
 
 	if(vaddr >= FAKEFLASH_START && vaddr < FAKEFLASH_END)
 		byte = fakeflash_read(vaddr);
@@ -304,7 +305,7 @@ unsigned char load_byte(unsigned int vaddr, char *ram, char *flash)
 	return byte;
 }
 
-void store_byte(unsigned int vaddr, char val, char *ram, char *flash)
+void store_byte(uint32_t vaddr, int8_t val, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		goto error;
@@ -314,7 +315,7 @@ void store_byte(unsigned int vaddr, char val, char *ram, char *flash)
 		goto error;
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		*(char *)(ram+vaddr-RAM_START) = val;
+		*(int8_t *)(ram+vaddr-RAM_START) = val;
 	
 	return;
 error:
@@ -322,7 +323,7 @@ error:
 /* 	printf("can't write to 0x%x\n", vaddr); */
 }
 
-char *r2rn(int reg)
+char *r2rn(int32_t reg)
 {
 	switch (reg)
 	{
@@ -405,7 +406,7 @@ void dump_regs(struct cpu_state *cpu)
 }
 #endif
 
-int *get_address(unsigned int vaddr, char *ram, char *flash)
+int32_t *get_address(uint32_t vaddr, int8_t *ram, int8_t *flash)
 {
 	if(vaddr >= REG_START && vaddr <= REG_END)
 		return 0;
@@ -413,10 +414,10 @@ int *get_address(unsigned int vaddr, char *ram, char *flash)
 		vaddr = vaddr & ~0x20000000;
 
 	if(vaddr >= FLASH_START && vaddr < FLASH_END)
-		return (int *)(flash+(vaddr-FLASH_START));
+		return (int32_t *)(flash+(vaddr-FLASH_START));
 	
 	if(vaddr >= RAM_START && vaddr < RAM_END)
-		return (int *)(ram+(vaddr-RAM_START));
+		return (int32_t *)(ram+(vaddr-RAM_START));
 	return 0;
 }
 
@@ -435,17 +436,17 @@ void process_callbacks(struct cpu_state *cpu)
 
 void execute(struct cpu_state *cpu)
 {
-	int instruction;
-	int opcode;
-	int rs ;
-	int rt ;
-	int rd ;
-	int sa ;
-	int base;
-	unsigned int vaddr;
-	int offset;
-	short im16;
-	static int count = 0;
+	int32_t instruction;
+	int32_t opcode;
+	int32_t rs ;
+	int32_t rt ;
+	int32_t rd ;
+	int32_t sa ;
+	int32_t base;
+	uint32_t vaddr;
+	int32_t offset;
+	int16_t im16;
+	static int32_t count = 0;
 
 	dtrace("0x%x: ", cpu->pc);
 
@@ -493,20 +494,20 @@ void execute(struct cpu_state *cpu)
 	case INS_BEQ:   /* 00000100 */
 		if(cpu->reg[rt] == cpu->reg[rs])
 		{
-		  cpu->jump_pc = cpu->pc + ((int)offset << 2);
+		  cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 			cpu->delayed_jump = 1;
 		}
 		dtrace("\tbeq\t%s, %s, 0x%x\033[100D\33[65C(0x%x == 0x%x)\n",
-		       r2rn(rt), r2rn(rs), cpu->pc + ((int)offset << 2), cpu->reg[rt], cpu->reg[rs]);
+		       r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]);
 		break;
 	case INS_BNE:   /* 00000101 */
 		if(cpu->reg[rt] != cpu->reg[rs])
 		{
-		  cpu->jump_pc = cpu->pc + ((int)offset << 2);
+		  cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 			cpu->delayed_jump = 1;
 		}
 		dtrace("\tbne\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n",
-		       r2rn(rt), r2rn(rs), cpu->pc + ((int)offset << 2), cpu->reg[rt], cpu->reg[rs]);
+		       r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]);
 		break;
 	case INS_BLEZ:  /* 00000110 */
 		if(cpu->reg[rs] <= 0)
@@ -527,39 +528,39 @@ void execute(struct cpu_state *cpu)
 		       r2rn(rs), cpu->pc + (offset << 2), cpu->reg[rs]);
 		break;
 	case INS_ADDI:  /* 00001000 */
-		cpu->reg[rt] = cpu->reg[rs] + (int)im16;
+		cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
 		dtrace("\taddi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_ADDIU: /* 00001001 */
-		cpu->reg[rt] = cpu->reg[rs] + (int)im16;
+		cpu->reg[rt] = cpu->reg[rs] + (int32_t)im16;
 		dtrace("\taddiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_SLTI:  /* 00001010 */
-		cpu->reg[rt] = cpu->reg[rs] < (unsigned int)(int)im16;
+		cpu->reg[rt] = cpu->reg[rs] < (uint32_t)(int32_t)im16;
 		dtrace("\tslti\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_SLTIU: /* 00001011 */
-	  cpu->reg[rt] = (unsigned int)cpu->reg[rs] < (int)(unsigned short)im16;
+	  cpu->reg[rt] = (uint32_t)cpu->reg[rs] < (int32_t)(uint16_t)im16;
 		dtrace("\tsltiu\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rt), r2rn(rs), im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_ANDI:  /* 00001100 */
-		cpu->reg[rt] = cpu->reg[rs] & (int)(unsigned short)im16;
+		cpu->reg[rt] = cpu->reg[rs] & (int32_t)(uint16_t)im16;
 		dtrace("\tandi\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
-		       r2rn(rt), r2rn(rs), (int)(unsigned short)im16, r2rn(rt), cpu->reg[rt]);
+		       r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_ORI:   /* 00001101 */
-		cpu->reg[rt] = cpu->reg[rs] | (int)(unsigned short)im16;
+		cpu->reg[rt] = cpu->reg[rs] | (int32_t)(uint16_t)im16;
 		dtrace("\tori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
-		       r2rn(rt), r2rn(rs), (int)(unsigned short)im16, r2rn(rt), cpu->reg[rt]);
+		       r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_XORI:  /* 00001110 */
-		cpu->reg[rt] = cpu->reg[rs] ^ (int)(unsigned short)im16;
+		cpu->reg[rt] = cpu->reg[rs] ^ (int32_t)(uint16_t)im16;
 		dtrace("\txori\t%s, %s, 0x%x\033[100D\33[65C(%s = 0x%x)\n",
-		       r2rn(rt), r2rn(rs), (int)(unsigned short)im16, r2rn(rt), cpu->reg[rt]);
+		       r2rn(rt), r2rn(rs), (int32_t)(uint16_t)im16, r2rn(rt), cpu->reg[rt]);
 		break;
 	case INS_LUI:   /* 00001111 */
 		cpu->reg[rt] = im16 << 16;
@@ -585,24 +586,24 @@ void execute(struct cpu_state *cpu)
 	case INS_BEQL:  /* 00010100 */
 		if(cpu->reg[rt] == cpu->reg[rs])
 		{
-		  cpu->jump_pc = cpu->pc + ((int)offset << 2);
+		  cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 		  cpu->delayed_jump = 1;
 		}
 		else
 		  cpu->pc += 4;
 		dtrace("\tbeql\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n",
-		       r2rn(rt), r2rn(rs), cpu->pc + ((int)offset << 2), cpu->reg[rt], cpu->reg[rs]);
+		       r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]);
 		break;
 	case INS_BNEL:   /* 00010101 */
 		if(cpu->reg[rt] != cpu->reg[rs])
 		{
-		  cpu->jump_pc = cpu->pc + ((int)offset << 2);
+		  cpu->jump_pc = cpu->pc + ((int32_t)offset << 2);
 		  cpu->delayed_jump = 1;
 		}
 		else
 		  cpu->pc += 4;
 		dtrace("\tbnel\t%s, %s, 0x%x\033[100D\33[65C(0x%x != 0x%x)\n",
-		       r2rn(rt), r2rn(rs), cpu->pc + ((int)offset << 2), cpu->reg[rt], cpu->reg[rs]);
+		       r2rn(rt), r2rn(rs), cpu->pc + ((int32_t)offset << 2), cpu->reg[rt], cpu->reg[rs]);
 		break;
 	case INS_BLEZL: /* 00010110 */
 		if(cpu->reg[rs] <= 0)
@@ -676,9 +677,9 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_LWL:   /* 00100010 */
 	  {
-	    char byte;
-	    unsigned int word;
-	    	vaddr = cpu->reg[base]+(int)offset;
+	    int8_t byte;
+	    uint32_t word;
+	    	vaddr = cpu->reg[base]+(int32_t)offset;
 		byte = (vaddr & 0x03);
 		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
@@ -710,7 +711,7 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_LBU:   /* 00100100 */
 		vaddr = cpu->reg[base]+offset;
-		cpu->reg[rt] = (int)load_byte(vaddr, cpu->ram, cpu->flash);
+		cpu->reg[rt] = (int32_t)load_byte(vaddr, cpu->ram, cpu->flash);
 		dtrace("\tlbu\t%s, 0x%x(%s)\033[100D\33[65C(%s = 0x%x) @ 0x%x\n",
 		       r2rn(rt), offset, r2rn(base), r2rn(rt), cpu->reg[rt], vaddr);
 		break;
@@ -724,9 +725,9 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_LWR:   /* 00100110 */
 	  {
-	    char byte;
-	    unsigned int word;
-	    	vaddr = cpu->reg[base]+(int)offset;
+	    int8_t byte;
+	    uint32_t word;
+	    	vaddr = cpu->reg[base]+(int32_t)offset;
 		byte = (vaddr & 0x03);
 		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
@@ -768,9 +769,9 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_SWL:   /* 00101010 */
 	  {
-		char byte;
-		unsigned int word;
-	    	vaddr = cpu->reg[base]+(int)offset;
+		int8_t byte;
+		uint32_t word;
+	    	vaddr = cpu->reg[base]+(int32_t)offset;
 		byte = (vaddr & 0x03);
 		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
@@ -811,9 +812,9 @@ void execute(struct cpu_state *cpu)
 		break;
 	case INS_SWR:   /* 00101110 */
 	  {
-		char byte;
-		unsigned int word;
-	    	vaddr = cpu->reg[base]+(int)offset;
+		int8_t byte;
+		uint32_t word;
+	    	vaddr = cpu->reg[base]+(int32_t)offset;
 		byte = (vaddr & 0x03);
 		word = load_word(vaddr & 0xfffffffc, cpu->ram, cpu->flash);
 		switch(byte)
@@ -841,7 +842,7 @@ void execute(struct cpu_state *cpu)
 		dtrace("\tcache\n");
 		break;
 	case INS_SLL:   /* 01000000 */
-		cpu->reg[rd] = (unsigned int)cpu->reg[rt] << sa;
+		cpu->reg[rd] = (uint32_t)cpu->reg[rt] << sa;
 		if(sa == 0)
 		  dtrace("\tnop\n");
 		else
@@ -853,7 +854,7 @@ void execute(struct cpu_state *cpu)
 		exit(1);
 		break;
 	case INS_SRL:   /* 01000010 */
-		cpu->reg[rd] = (unsigned int)cpu->reg[rt] >> sa;
+		cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> sa;
 		dtrace("\tsrl\t%s, %s, %d\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]);
 		break;
@@ -863,17 +864,17 @@ void execute(struct cpu_state *cpu)
 		       r2rn(rd), r2rn(rt), sa, r2rn(rd), cpu->reg[rd]);
 		break;
 	case INS_SLLV:  /* 01000100 */
-		cpu->reg[rd] = (unsigned int)cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
+		cpu->reg[rd] = (uint32_t)cpu->reg[rt] << (cpu->reg[rs] & 0x1f);
 		dtrace("\tsllv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]);
 		break;
 	case INS_SRLV:  /* 01000110 */
-		cpu->reg[rd] = (unsigned int)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
+		cpu->reg[rd] = (uint32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 		dtrace("\tsrlv\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]);
 		break;
 	case INS_SRAV:  /* 01000111 */
-		cpu->reg[rd] = (int)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
+		cpu->reg[rd] = (int32_t)cpu->reg[rt] >> (cpu->reg[rs] & 0x1f);
 		dtrace("\tsrav\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rd), r2rn(rt), r2rn(rs), r2rn(rd), cpu->reg[rd]);
 		break;
@@ -911,14 +912,14 @@ void execute(struct cpu_state *cpu)
 		       r2rn(rs), "LO", cpu->LO);
 		break;
 	case INS_MULT:  /* 01011000 */
-		cpu->HI = ((long)cpu->reg[rs] * (long)cpu->reg[rt]) >> 32;
-		cpu->LO = ((long)cpu->reg[rs] * (long)cpu->reg[rt]) & 0xffffffff;
+		cpu->HI = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) >> 32;
+		cpu->LO = ((int64_t)cpu->reg[rs] * (int64_t)cpu->reg[rt]) & 0xffffffff;
 		dtrace("\tmult\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n",
 		       r2rn(rs), r2rn(rt), cpu->HI, cpu->LO);
 		break;
 	case INS_MULTU: /* 01011001 */
-		cpu->HI = ((unsigned long)(unsigned int)cpu->reg[rs] * (unsigned long)(unsigned int)cpu->reg[rt]) >> 32;
-		cpu->LO = ((unsigned long)(unsigned int)cpu->reg[rs] * (unsigned long)(unsigned int)cpu->reg[rt]) & 0xffffffff;
+		cpu->HI = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) >> 32;
+		cpu->LO = ((uint64_t)(uint32_t)cpu->reg[rs] * (uint64_t)(uint32_t)cpu->reg[rt]) & 0xffffffff;
 		dtrace("\tmultu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n",
 		       r2rn(rs), r2rn(rt), cpu->HI, cpu->LO);
 		break;
@@ -929,8 +930,8 @@ void execute(struct cpu_state *cpu)
 		       r2rn(rs), r2rn(rt), cpu->HI, cpu->LO);
 		break;
 	case INS_DIVU:  /* 01011011 */
-		cpu->LO = (unsigned int)cpu->reg[rs] / (unsigned int)cpu->reg[rt];
-		cpu->HI = (unsigned int)cpu->reg[rs] % (unsigned int)cpu->reg[rt];
+		cpu->LO = (uint32_t)cpu->reg[rs] / (uint32_t)cpu->reg[rt];
+		cpu->HI = (uint32_t)cpu->reg[rs] % (uint32_t)cpu->reg[rt];
 		dtrace("\tdivu\t%s, %s\033[100D\33[65C(hi = 0x%x lo=0x%x)\n",
 		       r2rn(rs), r2rn(rt), cpu->HI, cpu->LO);
 		break;
@@ -980,7 +981,7 @@ void execute(struct cpu_state *cpu)
 		       r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]);
 		break;
 	case INS_SLTU:  /* 01101011 */
-		cpu->reg[rd] = (unsigned int)cpu->reg[rs] < (unsigned int)cpu->reg[rt];
+		cpu->reg[rd] = (uint32_t)cpu->reg[rs] < (uint32_t)cpu->reg[rt];
 		dtrace("\tsltu\t%s, %s, %s\033[100D\33[65C(%s = 0x%x)\n",
 		       r2rn(rd), r2rn(rs), r2rn(rt), r2rn(rd), cpu->reg[rd]);
 		break;
@@ -1039,7 +1040,7 @@ void execute(struct cpu_state *cpu)
 	  timer_int = 1;
 }
 
-void register_callback(struct cpu_state *cpu, unsigned int address, void(*callback)(struct cpu_state *))
+void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *))
 {
   struct callback *cb;
   cb = (struct callback*)malloc(sizeof(struct callback));
@@ -1050,9 +1051,9 @@ void register_callback(struct cpu_state *cpu, unsigned int address, void(*callba
   cpu->callbacks = cb;
 }
 
-void initialize_cpu(struct cpu_state *cpu, char* ram, char* flash, int start_address)
+void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address)
 {
-	int i;
+	int32_t i;
 
 	for(i = 0; i < 32; i++)
 	{
@@ -1083,11 +1084,11 @@ void enable_debug(struct cpu_state *cpu)
 	debug = 1;
 }
 
-int main(void)
+int32_t main(void)
 {
-	int fd;
-	char *flash;
-	char *ram;
+	int32_t fd;
+	int8_t *flash;
+	int8_t *ram;
 	struct cpu_state cpu;
 
 	flash = malloc(FLASH_SIZE);
