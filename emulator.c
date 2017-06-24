@@ -1485,7 +1485,7 @@ void instlog(struct cpu_state *cpu)
 	}
 }
 
-void initialize_emulator(int8_t** ram, int8_t** flash)
+void initialize_emulator(struct cpu_state *cpu, char *firmware_file)
 {
 	int32_t fd;
 
@@ -1493,17 +1493,17 @@ void initialize_emulator(int8_t** ram, int8_t** flash)
 	run = false;
 	step = false;
 
-	*flash = malloc(FLASH_SIZE);
-	*ram = malloc(RAM_SIZE);
-	bzero((void *)*flash, FLASH_SIZE);
-	bzero((void *)*ram, RAM_SIZE);
+	cpu->flash = malloc(FLASH_SIZE);
+	cpu->ram = malloc(RAM_SIZE);
+	bzero((void *)cpu->flash, FLASH_SIZE);
+	bzero((void *)cpu->ram, RAM_SIZE);
 
-	fd = open("fw.bin", O_RDONLY);
+	fd = open(firmware_file, O_RDONLY);
 
-	read(fd, (void *)*flash, FLASH_SIZE);
+	read(fd, (void *)cpu->flash, FLASH_SIZE);
 }
 
-void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address)
+void initialize_cpu(struct cpu_state *cpu, int32_t start_address)
 {
 	int32_t i,j;
 
@@ -1525,8 +1525,6 @@ void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t s
 	cpu->HI = 0;
 	cpu->LO = 0;
 	cpu->callbacks = NULL;
-	cpu->ram = ram;
-	cpu->flash = flash;
 }
 
 void register_callbacks(void)

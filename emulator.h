@@ -43,8 +43,8 @@ extern bool debug;
 extern bool run;
 extern bool step;
 
-void initialize_emulator(int8_t** ram, int8_t** flash);
-void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address);
+void initialize_emulator(struct cpu_state *cpu, char *firmware_file);
+void initialize_cpu(struct cpu_state *cpu, int32_t start_address);
 void register_callbacks(void);
 void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *));
 void bp(struct cpu_state *cpu);
