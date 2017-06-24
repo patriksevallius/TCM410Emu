@@ -10,53 +10,19 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "emulator.h"
 #include "opcode.h"
 
 #define AL "\033[100D\33[65C"
 
-#define FAKEFLASH_START 0x9a000000
-#define FAKEFLASH_END   0x9f200000
-
-#define FLASH_START 0x9fc00000
-#define FLASH_END   0x9fe00000
-#define FLASH_SIZE  0x00200000
-
-#define RAM_START   0x80000000
-#define RAM_END     0x82000000
-#define RAM_SIZE    0x02000000
-
-#define REG_START   0xfffe0000
-#define REG_END     0xffffffff
-
 #define dtrace(...) do { if( debug ) fprintf(stderr, __VA_ARGS__); } while(0)
 
-struct cpu_state;
+struct cpu_state cpu;
 
-struct callback
-{
-	struct callback* next;
-	uint32_t address;
-	void(*callback)(struct cpu_state *);
-};
-
-struct cpu_state
-{
-	int32_t reg[32];
-	int32_t HI;
-	int32_t LO;
-	int32_t pc;
-	int32_t prev_pc[3];
-	int32_t delayed_jump;
-	int32_t jump_pc;
-	int32_t eret;
-	bool in_irq;
-  	struct callback *callbacks;
-	int8_t *ram;
-	int8_t *flash;
-	int32_t cop0[32][10];
-} cpu;
-
-static bool debug = false;
+bool debug = false;
+bool run;
+bool step;
+int32_t count = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
 static int32_t flash_auto_select = 0;
@@ -75,6 +41,10 @@ static int32_t uart0_ctrl = 0;
 static int32_t uart0_baud_rate = 0;
 static int32_t uart0_mctl = 0;
 static int32_t uart0_ir = (1 << 5) << 16;
+static int32_t uart1_ctrl = 0;
+static int32_t uart1_baud_rate = 0;
+static int32_t uart1_mctl = 0;
+static int32_t uart1_ir = (1 << 5) << 16;
 static int32_t mpi_csbase_0 = 0;
 static int32_t mpi_csctl_0 = 0;
 static int32_t mpi_csbase_1 = 0;
@@ -285,6 +255,26 @@ void reg_write_byte(uint32_t vaddr, uint8_t val)
 		perf_sys_pll = (perf_sys_pll & 0xffffff00) | val;
 		printf("Set perf sys pll b(0x%x) = 0x%02x\n", vaddr, val);
 	}
+	else if(vaddr == 0xfffe000a)
+	{
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe000b)
+	{
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0015)
+	{
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0016)
+	{
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0017)
+	{
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+	}
 	else if(vaddr == 0xfffe0301)
 	{
 		uart0_ctrl = (uart0_ctrl & 0xffff00ff) | val << 8;
@@ -312,10 +302,39 @@ void reg_write_byte(uint32_t vaddr, uint8_t val)
 		fflush(stdout);
 		uart0_ir |= (1 << 5) << 16;
 	}
+	else if(vaddr == 0xfffe0323)
+	{
+		uart1_ctrl = (uart1_ctrl & 0x00ffffff) | val << 24;
+		printf("Set uart0 ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0803)
+	{
+		printf("Set spi? ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe0881)
+	{
+		printf("Set spi? ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe3000)
+	{
+		printf("Set docsis? ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe3068)
+	{
+		printf("Set ??? b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe31e8)
+	{
+		printf("Set ??? b(0x%x) = 0x%02x\n", vaddr, val);
+	}
+	else if(vaddr == 0xfffe3601)
+	{
+		printf("Set docsis? ctrl b(0x%x) = 0x%02x\n", vaddr, val);
+	}
 	else
 	{
-		/* printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val); */
-		/* exit(1); */
+		printf("Reg write b(0x%x) = 0x%02x\n", vaddr, val);
+		//		exit(1);
 	}
 }
 
@@ -840,12 +859,7 @@ void process_callbacks(struct cpu_state *cpu)
 	}
 }
 
-void bp(struct cpu_state *cpu);
-void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *));
-void instlog(struct cpu_state *cpu);
 
-bool run;
-bool step;
 inline static void cli( struct cpu_state *cpu )
 {
 	char buf[100] = { 0 };
@@ -1471,6 +1485,105 @@ void instlog(struct cpu_state *cpu)
 	}
 }
 
+void initialize_emulator(int8_t** ram, int8_t** flash)
+{
+	int32_t fd;
+
+	debug = false;
+	run = false;
+	step = false;
+
+	*flash = malloc(FLASH_SIZE);
+	*ram = malloc(RAM_SIZE);
+	bzero((void *)*flash, FLASH_SIZE);
+	bzero((void *)*ram, RAM_SIZE);
+
+	fd = open("fw.bin", O_RDONLY);
+
+	read(fd, (void *)*flash, FLASH_SIZE);
+}
+
+void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address)
+{
+	int32_t i,j;
+
+	for(i = 0; i < 32; i++)
+	{
+		cpu->reg[i] = 0;
+	}
+	for(i = 0; i < 32; i++)
+	{
+		for(j = 0; j < 10; j++)
+		{
+			cpu->cop0[i][j] = 0;
+		}
+	}
+
+	cpu->pc = start_address;
+	cpu->delayed_jump = 0;
+	cpu->jump_pc = 0;
+	cpu->HI = 0;
+	cpu->LO = 0;
+	cpu->callbacks = NULL;
+	cpu->ram = ram;
+	cpu->flash = flash;
+}
+
+void register_callbacks(void)
+{
+	/* SB5100 */
+	/* register_callback(&cpu, 0x81f800a8, print_char); /\* bootloader putc *\/ */
+	/* register_callback(&cpu, 0x8027f1c0, print_string); /\* bcm_some_print_function *\/ */
+	/* register_callback(&cpu, 0x8025ca90, print_string); /\* printbuf, call to write *\/ */
+	/* register_callback(&cpu, 0x8025b8f8, printf_string); /\* printf *\/ */
+
+	/* TCM410 */
+	register_callback(&cpu, 0x8028bcf0, print_string); /*  */
+	register_callback(&cpu, 0x80268558, printf_string); /*  */
+}
+
+void print_string(struct cpu_state *cpu)
+{
+	printf("print@0x%08x: ", cpu->prev_pc[2] );
+	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
+	fflush( stdout );
+}
+
+void printf_string(struct cpu_state *cpu)
+{
+	printf("printf@0x%08x: ", cpu->prev_pc[2] );
+	printf((char *)get_address(cpu->reg[4], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[6], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[7], cpu->ram, cpu->flash));
+	fflush( stdout );
+}
+
+void print_char(struct cpu_state *cpu)
+{
+	printf("%c", cpu->reg[4]);
+	fflush( stdout );
+}
+
+void bp(struct cpu_state *cpu)
+{
+	run = false;
+	debug = true;
+}
+
+void clear_workQIsEmpty(struct cpu_state *cpu)
+{
+	*(int*)(cpu->ram+(0x8035e2d8-0x80000000)) = 0;
+}
+
+void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *))
+{
+  struct callback *cb;
+  cb = (struct callback*)malloc(sizeof(struct callback));
+
+  cb->address = address;
+  cb->callback = callback;
+  cb->next = cpu->callbacks;
+  cpu->callbacks = cb;
+}
+
 void execute(struct cpu_state *cpu)
 {
 	int32_t instruction;
@@ -1483,10 +1596,7 @@ void execute(struct cpu_state *cpu)
 	uint32_t vaddr;
 	int32_t offset;
 	int16_t im16;
-	static int32_t count = 0;
 
-	for(;;)
-	{
 		if( (uint32_t)cpu->cop0[9][0] >= (uint32_t)cpu->cop0[11][0] && (uint32_t)cpu->cop0[11][0] > 0 )
 		{
 			/* printf("******************\ncount: %u compare: %u\n******************\n", cpu->cop0[9][0], cpu->cop0[11][0] ); */
@@ -2073,108 +2183,4 @@ void execute(struct cpu_state *cpu)
 		if(count % 10000000 == 0)
 			timer_int = 2;
 		cpu->cop0[9][10]++; /* Count register */
-	}
-}
-
-void register_callback(struct cpu_state *cpu, uint32_t address, void(*callback)(struct cpu_state *))
-{
-  struct callback *cb;
-  cb = (struct callback*)malloc(sizeof(struct callback));
-
-  cb->address = address;
-  cb->callback = callback;
-  cb->next = cpu->callbacks;
-  cpu->callbacks = cb;
-}
-
-void initialize_cpu(struct cpu_state *cpu, int8_t* ram, int8_t* flash, int32_t start_address)
-{
-	int32_t i,j;
-
-	for(i = 0; i < 32; i++)
-	{
-		cpu->reg[i] = 0;
-	}
-	for(i = 0; i < 32; i++)
-	{
-		for(j = 0; j < 10; j++)
-		{
-			cpu->cop0[i][j] = 0;
-		}
-	}
-
-	cpu->pc = start_address;
-	cpu->delayed_jump = 0;
-	cpu->jump_pc = 0;
-	cpu->HI = 0;
-	cpu->LO = 0;
-	cpu->callbacks = NULL;
-	cpu->ram = ram;
-	cpu->flash = flash;
-}
-
-void print_string(struct cpu_state *cpu)
-{
-	printf("print@0x%08x: ", cpu->prev_pc[2] );
-	printf("%s", (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash));
-	fflush( stdout );
-}
-
-void printf_string(struct cpu_state *cpu)
-{
-	printf("printf@0x%08x: ", cpu->prev_pc[2] );
-	printf((char *)get_address(cpu->reg[4], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[5], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[6], cpu->ram, cpu->flash), (char *)get_address(cpu->reg[7], cpu->ram, cpu->flash));
-	fflush( stdout );
-}
-
-void print_char(struct cpu_state *cpu)
-{
-	printf("%c", cpu->reg[4]);
-	fflush( stdout );
-}
-
-void bp(struct cpu_state *cpu)
-{
-	run = false;
-	debug = true;
-}
-
-void clear_workQIsEmpty(struct cpu_state *cpu)
-{
-	*(int*)(cpu->ram+(0x8035e2d8-0x80000000)) = 0;
-}
-
-int32_t main(void)
-{
-	int32_t fd;
-	int8_t *flash;
-	int8_t *ram;
-
-	flash = malloc(FLASH_SIZE);
-	ram = malloc(RAM_SIZE);
-	bzero((void *)flash, FLASH_SIZE);
-	bzero((void *)ram, RAM_SIZE);
-
-	fd = open("fw.bin", O_RDONLY);
-
-	read(fd, (void *)flash, FLASH_SIZE);
-
-	initialize_cpu(&cpu, ram, flash, FLASH_START);
-
-	/* SB5100 */
-	/* register_callback(&cpu, 0x81f800a8, print_char); /\* bootloader putc *\/ */
-	/* register_callback(&cpu, 0x8027f1c0, print_string); /\* bcm_some_print_function *\/ */
-	/* register_callback(&cpu, 0x8025ca90, print_string); /\* printbuf, call to write *\/ */
-	/* register_callback(&cpu, 0x8025b8f8, printf_string); /\* printf *\/ */
-
-	/* TCM410 */
-	register_callback(&cpu, 0x8028bcf0, print_string); /*  */
-	register_callback(&cpu, 0x80268558, printf_string); /*  */
-
-	debug = false;
-	run = false;
-	step = false;
-	execute(&cpu);
-
-	return 0;
 }
