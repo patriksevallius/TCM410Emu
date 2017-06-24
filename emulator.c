@@ -21,7 +21,7 @@ struct cpu_state cpu;
 
 bool debug = false;
 bool run;
-bool step;
+bool do_step;
 int32_t count = 0;
 static int32_t timer_int = 0;
 static int32_t fakeflash_state = 0;
@@ -886,19 +886,19 @@ inline static void cli( struct cpu_state *cpu )
 		}
 		else if( strncmp( buf, "step", 3 ) == 0 )
 		{
-			step = true;
+			do_step = true;
 			debug = true;
 			return;
 		}
 		else if( strncmp( buf, "s\n", 2 ) == 0 )
 		{
-			step = true;
+			do_step = true;
 			debug = true;
 			return;
 		}
 		else if( strncmp( buf, "next", 3 ) == 0 )
 		{
-			step = false;
+			do_step = false;
 			run = true;
 			register_callback(cpu, cpu->pc+4, bp);
 			return;
@@ -906,12 +906,12 @@ inline static void cli( struct cpu_state *cpu )
 		else if( strncmp( buf, "bp", 2 ) == 0 )
 		{
 			int number = (int)strtol(buf + 3, NULL, 0);
-			step = true;
+			do_step = true;
 			register_callback(cpu, number, bp);
 			cli(cpu);
 			return;
 		}
-		if( !step )
+		if( !do_step )
 		{
 			exit(1);
 		}
@@ -1491,7 +1491,7 @@ void initialize_emulator(struct cpu_state *cpu, char *firmware_file)
 
 	debug = false;
 	run = false;
-	step = false;
+	do_step = false;
 
 	cpu->flash = malloc(FLASH_SIZE);
 	cpu->ram = malloc(RAM_SIZE);

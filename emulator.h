@@ -41,7 +41,7 @@ struct cpu_state
 extern struct cpu_state cpu;
 extern bool debug;
 extern bool run;
-extern bool step;
+extern bool do_step;
 
 void initialize_emulator(struct cpu_state *cpu, char *firmware_file);
 void initialize_cpu(struct cpu_state *cpu, int32_t start_address);
